@@ -1,0 +1,31 @@
+import express from "express"
+import cors from "cors";
+import {v2 as cloudinary} from 'cloudinary'
+import dotenv from "dotenv";
+import MongoDB  from "./utils/MongoDb.js";
+
+
+
+dotenv.config({});
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+const app = express();
+const PORT = process.env.PORT || 3000;
+const corsOptions = {
+    origin:"*",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
+}
+
+app.use(cors(corsOptions));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+
+app.listen(PORT, () => {
+    MongoDB();
+    console.log(`Server is running on port ${PORT}`);
+});
