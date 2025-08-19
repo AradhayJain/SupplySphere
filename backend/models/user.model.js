@@ -7,7 +7,12 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  subscriptionType: { type: String, default: "Free Tier" },
+  Role:{
+    type: String,
+    enum: ['Customer', 'Manufacturer','Retailer'],
+    default: 'user',
+    required: true
+  },
   dateJoined: { type: Date, default: Date.now },
   lastLogin: { type: Date },
   pic: {
@@ -16,11 +21,13 @@ const userSchema = new mongoose.Schema({
   },
   PhoneNumber:{
     type: Number,
-    // FIX: Changed from 'required: true' to 'required: false'
-    // This makes the phone number optional, allowing Google Sign-In to work.
     required: false, 
     unique: true,
-    sparse: true // Important: Allows multiple documents to have a null value for a unique field
+    sparse: true
+  },
+  Address:{
+    type: String,
+    required: true
   },
   verificationOtp: String,
   verificationOtpExpire: Date,
