@@ -7,7 +7,10 @@ import {
     forgotPassword,
     resetPassword, 
     registerRequestOtp,
-    registerVerifyOtp
+    registerVerifyOtp,
+    getUserProfile,
+    updateUserProfile,
+    changePassword
 } from "../controllers/user.controller.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/multer.js";
@@ -34,6 +37,10 @@ router.post("/forgot-password", forgotPassword);
 router.put("/reset-password/:resettoken", resetPassword);
 router.post("/register-verify-otp", registerVerifyOtp);
 router.post("/register-request-otp", upload.single("pic"), registerRequestOtp);
+router.get("/profile", protect, getUserProfile);
+router.put("/profile", protect, upload.single('pic'),updateUserProfile);
+router.put("/change-password", protect, changePassword);
+
 
 
 export default router;

@@ -338,3 +338,85 @@ export const registerVerifyOtp = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc Get logged-in user profile
+ * @route GET /api/user/profile
+ * @access Private
+ */
+export const getUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select("-password");
+
+  if (user) {
+    res.json(user);
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
+});
+
+/**
+ * @desc Update logged-in user profile
+ * @route PUT /api/user/profile
+ * @access Private
+ */
+export const updateUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.username = req.body.username || user.username;
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+    user.PhoneNumber = req.body.PhoneNumber || user.PhoneNumber;
+    user.Address = req.body.Address || user.Address;
+
+    // Handle profile picture update
+    if (req.file && req.file.path) {
+      const picUpload = await uploadOnCloudinary(req.file.path);
+      if (picUpload && picUpload.url) {
+        user.pic = picUpload.url;
+      }
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      username: updatedUser.username,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      PhoneNumber: updatedUser.PhoneNumber,
+      Address: updatedUser.Address,
+      pic: updatedUser.pic,
+      subscriptionType: updatedUser.subscriptionType,
+      token: generateToken(updatedUser._id),
+    });
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
+});
+
+
+/**
+ * @desc Change password when logged in
+ * @route PUT /api/user/change-password
+ * @access Private
+ */
+export const changePassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  const user = await User.findById(req.user._id);
+
+  if (user && (await user.matchPassword(oldPassword))) {
+    user.password = newPassword; // will be hashed by pre-save hook
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } else {
+    res.status(401);
+    throw new Error("Invalid old password");
+  }
+});
+
+
+

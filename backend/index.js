@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import Mongo  from "./utils/MongoDB.js";
 import uploadOnCloudinary from "./utils/cloudinary.js";
 import userRoutes from "./routes/user.routes.js";
+import orderRoutes from "./routes/order.routes.js";
 
 
 dotenv.config({});
@@ -25,8 +26,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/user", userRoutes);
-
-
+app.use("/api/orders", orderRoutes);
 
 app.listen(PORT, () => {
     Mongo();
