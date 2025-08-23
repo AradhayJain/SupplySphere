@@ -19,8 +19,8 @@ export const AuthProvider = ({ children }) => {
   // On initial load, check localStorage for a saved user session and token
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem('skillhire_user');
-      const savedToken = localStorage.getItem('skillhire_token');
+      const savedUser = localStorage.getItem('supply_user');
+      const savedToken = localStorage.getItem('supply_token');
 
       if (savedUser && savedToken) {
         const userData = JSON.parse(savedUser);
@@ -31,8 +31,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Failed to parse user from localStorage", error);
       // If parsing fails, ensure the user is logged out
-      localStorage.removeItem('skillhire_user');
-      localStorage.removeItem('skillhire_token');
+      localStorage.removeItem('supply_user');
+      localStorage.removeItem('supply_token');
     } finally {
       setLoading(false); // Stop loading once checked
     }
@@ -43,8 +43,8 @@ export const AuthProvider = ({ children }) => {
     const { token, ...userData } = backendData;
 
     // Store token and user data separately in localStorage
-    localStorage.setItem('skillhire_token', token);
-    localStorage.setItem('skillhire_user', JSON.stringify(userData));
+    localStorage.setItem('supply_token', token);
+    localStorage.setItem('supply_user', JSON.stringify(userData));
     
     setToken(token);
     setUser(userData);
@@ -53,8 +53,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     // Remove user data and token from localStorage
-    localStorage.removeItem('skillhire_user');
-    localStorage.removeItem('skillhire_token');
+    localStorage.removeItem('supply_user');
+    localStorage.removeItem('supply_token');
     
     setUser(null);
     setToken(null);

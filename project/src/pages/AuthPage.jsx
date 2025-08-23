@@ -180,6 +180,12 @@ const ForgotPasswordModal = ({ onClose, onLinkSent }) => {
 
 // --- Main Auth Page ---
 const AuthPage = ({ type }) => {
+  // Email Regex (basic but reliable)
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Password Regex (at least 8 chars, one uppercase, one lowercase, one digit, one special char)
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
   const [authStep, setAuthStep] = useState('credentials');
   const [isLogin, setIsLogin] = useState(type === 'login');
   const [showPassword, setShowPassword] = useState(false);
@@ -194,7 +200,7 @@ const AuthPage = ({ type }) => {
 
   const navigate = useNavigate();
   const { login, isAuthenticated, loading: authLoading } = useAuth();
-  const GOOGLE_CLIENT_ID = "675666752184-6r6c5369l793km40f299gelrmnknd928.apps.googleusercontent.com";
+  const GOOGLE_CLIENT_ID = "218370217453-ogrkkq14glkqus2q0d69p60bbh59hu53.apps.googleusercontent.com";
 
   useEffect(() => {
     setIsLogin(type === 'login');
@@ -212,9 +218,6 @@ const AuthPage = ({ type }) => {
       let error = '';
       if (name === 'email' && !EMAIL_REGEX.test(value)) {
           error = 'Please enter a valid email address.';
-      }
-      if (name === 'password' && !isLogin && !PASSWORD_REGEX.test(value)) {
-          error = 'Password must be 8+ characters with uppercase, lowercase, and a number.';
       }
       if (name === 'confirmPassword' && !isLogin && value !== formData.password) {
           error = 'Passwords do not match.';
@@ -251,6 +254,7 @@ const AuthPage = ({ type }) => {
         // --- REGISTRATION STEP 1: Request OTP ---
         const data = new FormData();
         Object.keys(formData).forEach(key => data.append(key, formData[key]));
+        console.log(data)
         
         const res = await fetch('http://localhost:3000/api/user/register-request-otp', { method: 'POST', body: data });
         if (!res.ok) { const err = await res.json(); throw new Error(err.message); }
@@ -273,6 +277,7 @@ const AuthPage = ({ type }) => {
     setError('');
     try {
         const token = credentialResponse.credential;
+        console.log(token)
         const res = await fetch('http://localhost:3000/api/user/google-auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
