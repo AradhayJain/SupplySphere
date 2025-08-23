@@ -110,49 +110,53 @@ export const loginUser = asyncHandler(async (req, res) => {
  * @access Public
  */
 export const googleAuth = asyncHandler(async (req, res) => {
-  try {
     const { token } = req.body;
-    console.log("Google Auth Token:", token);
-
-    if (!token) {
-      return res.status(400).json({ error: "No token provided" });
-    }
-
-    // Verify Google token
     const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID, // Specify the CLIENT_ID of the app that accesses the backend
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
     });
-
     const { name, email, picture } = ticket.getPayload();
-    console.log("Google Auth Payload:", { name, email, picture });
 
-    // Check if user already exists
+    
+   
     let user = await User.findOne({ email });
 
-    if (!user) {
-      // Create new user
-      user = await User.create({
-        name,
-        email,
-        password: null, // since it's Google
-        pic: picture,
-        isGoogleUser: true,
-      });
+    if (user) {
+        // User exists, log them in
+        user.lastLogin = new Date();
+        await user.save();
+    } else {
+        // User doesn't exist, create a new account
+        const username = email.split('@')[0] + Math.floor(Math.random() * 1000); // Generate a random username
+        const password = crypto.randomBytes(16).toString('hex'); // Generate a secure random password
+        
+        user = await User.create({
+            name,
+            email,
+            username,
+            password, // This will be hashed by the model pre-save hook
+            pic: picture,
+            subscriptionType: "Free Tier",
+            lastLogin: new Date(),
+        });
     }
 
-    // Return response with JWT
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      pic: user.pic,
-      token: generateToken(user._id),
-    });
-  } catch (err) {
-    console.error("Google Auth Error:", err);
-    res.status(500).json({ error: "Google Authentication Failed" });
-  }
+    if (user) {
+        res.status(user.isNew ? 201 : 200).json({
+            _id: user._id,
+            username: user.username,
+            name: user.name,
+            email: user.email,
+            PhoneNumber: user.PhoneNumber,
+            pic: user.pic,
+            subscriptionType: user.subscriptionType,
+            lastLogin: user.lastLogin,
+            token: generateToken(user._id),
+        });
+    } else {
+        res.status(400);
+        throw new Error("Invalid user data from Google");
+    }
 });
 
 

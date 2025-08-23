@@ -2,7 +2,7 @@ import express from "express"
 import cors from "cors";
 import {v2 as cloudinary} from 'cloudinary'
 import dotenv from "dotenv";
-import MongoDB  from "./utils/MongoDb.js";
+import Mongo  from "./utils/MongoDB.js";
 import uploadOnCloudinary from "./utils/cloudinary.js";
 import userRoutes from "./routes/user.routes.js";
 
@@ -29,6 +29,6 @@ app.use("/api/user", userRoutes);
 
 
 app.listen(PORT, () => {
-    MongoDB();
+    Mongo();
     console.log(`Server is running on port ${PORT}`);
 });

@@ -1,13 +1,10 @@
 import mongoose from "mongoose";
 
-const MongoDB = async () => {
+const Mongo = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-        dbName: "myNewDB", // 👈 hardcoded database name
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      }
-    );
+const conn = await mongoose.connect(
+  "mongodb+srv://aradhayjain2006:qgh7A6ycsMAUzPwn@cluster0.jadrgk9.mongodb.net/test?retryWrites=true&w=majority"
+);
 
     console.log(`✅ MongoDB connected: ${conn.connection.host}`);
     console.log(`📂 Database in use: ${conn.connection.name}`);
@@ -17,4 +14,4 @@ const MongoDB = async () => {
   }
 };
 
-export default MongoDB;
+export default Mongo;

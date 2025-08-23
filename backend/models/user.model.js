@@ -7,10 +7,16 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  Role:{
+  // Role:{
+  //   type: String,
+  //   enum: ['Customer', 'Manufacturer','Retailer'],
+  //   default: 'user',
+  //   required: true
+  // },
+  subscriptionType:{
     type: String,
-    enum: ['Customer', 'Manufacturer','Retailer'],
-    default: 'user',
+    enum: ['Free Tier', 'Basic', 'Premium'],
+    default: 'Free Tier',
     required: true
   },
   dateJoined: { type: Date, default: Date.now },
@@ -25,10 +31,10 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
-  Address:{
-    type: String,
-    required: true
-  },
+  // Address:{
+  //   type: String,
+  //   required: true
+  // },
   verificationOtp: String,
   verificationOtpExpire: Date,
   resetPasswordToken: String,
