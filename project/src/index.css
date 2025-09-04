@@ -1,3 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html, body, #root { height: 100%; }
+
+body {
+  @apply bg-dark-100 text-light-100 font-body;
+  background-image: theme('backgroundImage.brand-radial');
+}
+
+.h1 { @apply font-heading text-5xl sm:text-6xl md:text-7xl leading-tight; }
+.h2 { @apply font-heading text-3xl md:text-4xl; }
+
+.btn { @apply inline-flex items-center gap-2 rounded-xl px-5 py-3 font-medium transition; }
+.btn-primary { @apply bg-primary hover:bg-primary-dark text-white shadow-card; }
+.btn-ghost { @apply bg-white/5 hover:bg-white/10 text-light-100 border border-white/10; }
+
+.badge { @apply rounded-full px-3 py-1 text-xs font-medium bg-white/10 text-light-200; }
+.card { @apply bg-white/5 border border-white/10 rounded-2xl shadow-card; }
