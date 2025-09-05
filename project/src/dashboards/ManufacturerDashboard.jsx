@@ -1,82 +1,99 @@
+// src/dashboards/ManufacturerDashboard.jsx
 import React from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import ManufacturerHome from "./manufacturer/ManufacturerHome"; // import home page
+import ManufacturerHome from "./manufacturer/ManufacturerHome";
+import { Package, BarChart3, ClipboardList, User } from "lucide-react";
 
 const ManufacturerDashboard = ({ previewMode = false }) => {
   const { user } = useAuth();
   const location = useLocation();
 
   const sidebarLinks = [
-    { name: "Home", path: "home" },
-    { name: "Inventory", path: "inventory" },
-    { name: "Sales History", path: "sales-history" },
-    { name: "Profile", path: "profile" },
+    { name: "Home", path: "home", icon: BarChart3 },
+    { name: "Inventory", path: "inventory", icon: Package },
+    { name: "Sales History", path: "sales-history", icon: ClipboardList },
+    { name: "Profile", path: "profile", icon: User },
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-72 bg-white border-r hidden md:block">
-        <div className="p-6 border-b">
-          <h3 className="text-lg font-bold">Manufacturer</h3>
-          <p className="text-sm text-gray-500">{user?.email || "you@company.com"}</p>
+    <div className="flex min-h-screen bg-dark-200 text-light-100 font-body overflow-hidden">
+      {/* Sidebar (desktop only) */}
+      <aside className="w-72 bg-dark-300 border-r border-dark-400 hidden md:flex flex-col shrink-0">
+        <div className="p-6 border-b border-dark-400">
+          <h3 className="text-xl font-heading font-bold text-primary">
+            Manufacturer
+          </h3>
+          <p className="text-sm text-light-400 truncate max-w-full">
+            {user?.email || "you@company.com"}
+          </p>
         </div>
 
-        <nav className="p-4 space-y-1">
-          {sidebarLinks.map((link) => (
+        <nav className="p-4 flex-1 space-y-1">
+          {sidebarLinks.map(({ name, path, icon: Icon }) => (
             <NavLink
-              key={link.path}
-              to={link.path}
+              key={path}
+              to={path}
               className={({ isActive }) =>
-                `block px-4 py-2 rounded-md hover:bg-gray-100 transition-colors ${
-                  isActive ? "bg-red-500 text-white font-semibold" : "text-gray-700"
+                `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-primary-dark text-white font-semibold"
+                    : "text-light-300 hover:bg-dark-400 hover:text-primary-light"
                 }`
               }
             >
-              {link.name}
+              <Icon className="w-5 h-5 shrink-0" />
+              <span className="truncate">{name}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="p-4 mt-auto">
-          <small className="text-xs text-gray-400">SupplySphere • Manufacturer</small>
+        <div className="p-4 border-t border-dark-400">
+          <small className="text-xs text-light-500 block truncate">
+            SupplySphere • Manufacturer
+          </small>
         </div>
       </aside>
 
       {/* Mobile top nav */}
-      <div className="md:hidden w-full bg-white border-b">
-        <div className="flex items-center justify-between p-3">
-          <div>
-            <h3 className="text-lg font-bold">Manufacturer</h3>
-            <p className="text-sm text-gray-500">{user?.email || "you@company.com"}</p>
+      <div className="md:hidden w-full bg-dark-300 border-b border-dark-400">
+        <div className="flex items-center justify-between p-3 overflow-hidden">
+          <div className="min-w-0">
+            <h3 className="text-lg font-heading font-bold text-primary">
+              Manufacturer
+            </h3>
+            <p className="text-sm text-light-400 truncate max-w-[200px]">
+              {user?.email || "you@company.com"}
+            </p>
           </div>
-          <div>
-            <span className="text-sm text-gray-600">{location.pathname.split("/").pop()}</span>
+          <div className="ml-2 flex-shrink-0">
+            <span className="text-sm text-light-300 truncate">
+              {location.pathname.split("/").pop()}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Main content area */}
-      <main className="flex-1 p-6">
-        {/* Top quick stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Total Products</p>
-            <h2 className="text-2xl font-bold">128</h2>
+      {/* Main content */}
+      <main className="flex-1 p-6 overflow-y-auto">
+        {/* Quick stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-dark-800 border border-dark-700 p-6 rounded-2xl shadow-sm overflow-hidden">
+            <p className="text-sm text-light-500">Total Products</p>
+            <h2 className="text-2xl font-bold text-light-100">128</h2>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Stock Value</p>
-            <h2 className="text-2xl font-bold">₹ 1,250,000</h2>
+          <div className="bg-dark-800 border border-dark-700 p-6 rounded-2xl shadow-sm overflow-hidden">
+            <p className="text-sm text-light-500">Stock Value</p>
+            <h2 className="text-2xl font-bold text-light-100">₹ 1,250,000</h2>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Pending Orders</p>
-            <h2 className="text-2xl font-bold">23</h2>
+          <div className="bg-dark-800 border border-dark-700 p-6 rounded-2xl shadow-sm overflow-hidden">
+            <p className="text-sm text-light-500">Pending Orders</p>
+            <h2 className="text-2xl font-bold text-light-100">23</h2>
           </div>
         </div>
 
-        {/* Outlet renders subpages OR Home if previewMode */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        {/* Subpages */}
+        <div className="bg-dark-800 border border-dark-700 rounded-2xl shadow-card p-6 overflow-hidden">
           {previewMode ? <ManufacturerHome /> : <Outlet />}
         </div>
       </main>
