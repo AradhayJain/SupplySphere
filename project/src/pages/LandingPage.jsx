@@ -57,10 +57,13 @@ const Navbar = ({ toggleTheme, currentTheme }) => {
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm shadow-md' : 'bg-transparent'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center gap-14 sm:justify-between h-20">
           <Link to="/" className="flex items-center space-x-2">
             <Network className="h-8 w-8 text-teal-600" />
-            <span className="text-2xl font-bold text-zinc-800 dark:text-white">Supply Sphere</span>
+            <span className="text-md sm:text-2xl font-bold text-zinc-800 dark:text-white">
+  Supply Sphere
+</span>
+
           </Link>
           <div className="hidden md:flex items-center space-x-8">
             <a href="#features" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-teal-600 dark:hover:text-teal-500">Features</a>

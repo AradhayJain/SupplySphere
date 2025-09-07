@@ -142,23 +142,23 @@ const ManufacturerInventory = () => {
   }, [totalPages]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-3 md:px-0">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white p-8 rounded-2xl shadow-lg">
-        <h1 className="text-3xl font-bold">Manufacturer Inventory</h1>
+      <div className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white p-6 md:p-8 rounded-2xl shadow-lg">
+        <h1 className="text-2xl md:text-3xl font-bold">Manufacturer Inventory</h1>
         <p className="text-sm mt-2 opacity-90">
           Manage products, stock, and pricing all in one place.
         </p>
       </div>
 
       {/* Add product */}
-      <div className="bg-dark-800/60 border border-dark-700 backdrop-blur-lg rounded-2xl p-6 shadow-lg">
+      <div className="bg-dark-800/60 border border-dark-700 backdrop-blur-lg rounded-2xl p-4 md:p-6 shadow-lg">
         <h2 className="font-semibold text-light-100 mb-4 flex items-center gap-2">
           <Plus className="w-5 h-5 text-teal-400" /> Add New Product
         </h2>
         <form
           onSubmit={addProduct}
-          className="grid grid-cols-1 md:grid-cols-4 gap-3"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
         >
           {[
             { name: "name", placeholder: "Product name", type: "text" },
@@ -173,12 +173,14 @@ const ManufacturerInventory = () => {
               type={f.type}
               value={form[f.name]}
               onChange={(e) =>
-                setForm({ ...form, [f.name]: f.type === "number" ? Number(e.target.value) : e.target.value })
+                setForm({
+                  ...form,
+                  [f.name]:
+                    f.type === "number" ? Number(e.target.value) : e.target.value,
+                })
               }
               placeholder={f.placeholder}
-              className={`bg-dark-700/50 text-light-100 border border-dark-600 rounded-lg px-3 py-2 placeholder-light-500 focus:ring-2 focus:ring-teal-500 ${
-                f.name === "price" ? "md:col-span-2" : ""
-              }`}
+              className={`bg-dark-700/50 text-light-100 border border-dark-600 rounded-lg px-3 py-2 placeholder-light-500 focus:ring-2 focus:ring-teal-500 w-full`}
               required={i < 2}
             />
           ))}
@@ -193,7 +195,7 @@ const ManufacturerInventory = () => {
           </label>
           <button
             type="submit"
-            className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-4 py-2 rounded-lg shadow hover:opacity-90 transition"
+            className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-4 py-2 rounded-lg shadow hover:opacity-90 transition col-span-full sm:col-span-1"
           >
             Add Product
           </button>
@@ -211,7 +213,7 @@ const ManufacturerInventory = () => {
           placeholder="Search by name or SKU"
           className="bg-dark-700/50 text-light-100 border border-dark-600 rounded-lg px-3 py-2 placeholder-light-500 focus:ring-2 focus:ring-teal-500 w-full md:w-1/3"
         />
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <select
             value={categoryFilter}
             onChange={(e) => {
@@ -294,7 +296,7 @@ const ManufacturerInventory = () => {
                     ₹ {p.price.toLocaleString()}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 flex-wrap">
                       <button
                         onClick={() => setSelected(p)}
                         className="px-3 py-1 bg-dark-700 hover:bg-dark-600 text-light-200 rounded-lg flex items-center gap-1"
@@ -333,7 +335,7 @@ const ManufacturerInventory = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-center items-center gap-2 mt-4">
+        <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
           <button
             onClick={() => setCurrentPage((s) => Math.max(1, s - 1))}
             disabled={currentPage === 1}
@@ -366,8 +368,8 @@ const ManufacturerInventory = () => {
 
       {/* View Modal */}
       {selected && !isEditing && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-          <div className="bg-dark-800/90 border border-dark-700 backdrop-blur-lg rounded-2xl shadow-xl p-6 w-96">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 p-4">
+          <div className="bg-dark-800/90 border border-dark-700 backdrop-blur-lg rounded-2xl shadow-xl p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-light-100 mb-3 flex items-center gap-2">
               <Eye className="w-5 h-5 text-teal-400" /> Product Details
             </h3>
@@ -391,7 +393,7 @@ const ManufacturerInventory = () => {
                 {selected.price.toLocaleString()}
               </p>
             </div>
-            <div className="mt-6 flex justify-between">
+            <div className="mt-6 flex flex-wrap justify-between gap-2">
               <button
                 onClick={() => setSelected(null)}
                 className="px-3 py-1 bg-dark-700 hover:bg-dark-600 text-light-200 rounded-lg flex items-center gap-1"
@@ -414,8 +416,8 @@ const ManufacturerInventory = () => {
 
       {/* Edit Modal */}
       {isEditing && selected && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-          <div className="bg-dark-800/90 border border-dark-700 backdrop-blur-lg rounded-2xl shadow-xl p-6 w-96">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 p-4">
+          <div className="bg-dark-800/90 border border-dark-700 backdrop-blur-lg rounded-2xl shadow-xl p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-light-100 mb-3 flex items-center gap-2">
               <Edit className="w-5 h-5 text-emerald-400" /> Edit Product
             </h3>
@@ -436,16 +438,16 @@ const ManufacturerInventory = () => {
                   className="bg-dark-700/50 text-light-100 border border-dark-600 rounded-lg px-3 py-2 placeholder-light-500 focus:ring-2 focus:ring-teal-500 w-full"
                 />
               ))}
-              <div className="flex justify-between mt-4">
+              <div className="flex flex-wrap justify-between mt-4 gap-2">
                 <button
                   onClick={saveEdit}
-                  className="px-3 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg"
+                  className="px-3 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg w-full sm:w-auto"
                 >
                   Save Changes
                 </button>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-3 py-2 bg-dark-700 hover:bg-dark-600 text-light-200 rounded-lg"
+                  className="px-3 py-2 bg-dark-700 hover:bg-dark-600 text-light-200 rounded-lg w-full sm:w-auto"
                 >
                   Cancel
                 </button>
