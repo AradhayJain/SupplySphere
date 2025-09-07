@@ -37,14 +37,14 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = ({ token, role, ...userData }) => {
+  const login = ({ token, Role, ...userData }) => {
     localStorage.setItem('supply_token', token);
     localStorage.setItem('supply_user', JSON.stringify(userData));
-    localStorage.setItem('supply_user_role', role);
+    localStorage.setItem('supply_user_role', Role);
 
     setToken(token);
     setUser(userData);
-    setRole(role);
+    setRole(Role);
     setIsAuthenticated(true);
   };
 

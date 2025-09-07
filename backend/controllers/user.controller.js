@@ -17,9 +17,9 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
  * @access Public
  */
 export const registerUser = asyncHandler(async (req, res) => {
-  const { username, name, email, password, PhoneNumber } = req.body;
+  const { fullName, email, password, PhoneNumber, Role } = req.body;
 
-  if (!name || !email || !password) {
+  if (!fullName || !email || !password) {
     res.status(400);
     throw new Error("Please fill all required fields");
   }
@@ -31,37 +31,22 @@ export const registerUser = asyncHandler(async (req, res) => {
     throw new Error("User already exists");
   }
 
-  // Upload pic to Cloudinary if it exists
-  let picUrl = null;
-  if (req.file && req.file.path) {
-      const picUpload = await uploadOnCloudinary(req.file.path);
-      if (!picUpload) {
-        res.status(400);
-        throw new Error("Profile picture upload failed");
-      }
-      picUrl = picUpload.url;
-  }
-
   // Create user
   const user = await User.create({
-    username,
-    name,
+    fullName,
     email,
     password,
     PhoneNumber,
-    pic: picUrl,
-    subscriptionType: "Free Tier", // default subscriptionType
+    Role: Role || 'Consumer',
     lastLogin: new Date() // current date
   });
 
   if (user) {
     res.status(201).json({
       _id: user._id,
-      username: user.username,
-      name: user.name,
+      fullName: user.name,
       email: user.email,
-      pic: user.pic,
-      subscriptionType: user.subscriptionType,
+      Role: user.Role,
       PhoneNumber: user.PhoneNumber,
       lastLogin: user.lastLogin,
       token: generateToken(user._id),
@@ -89,12 +74,10 @@ export const loginUser = asyncHandler(async (req, res) => {
 
     res.status(200).json({
       _id: user._id,
-      username: user.username,
-      name: user.name,
+      fullName: user.name,
       email: user.email,
       PhoneNumber: user.PhoneNumber,
-      pic: user.pic,
-      subscriptionType: user.subscriptionType,
+      Role: user.Role,
       lastLogin: user.lastLogin,
       token: generateToken(user._id),
     });
@@ -110,54 +93,74 @@ export const loginUser = asyncHandler(async (req, res) => {
  * @access Public
  */
 export const googleAuth = asyncHandler(async (req, res) => {
-    const { token } = req.body;
-    const ticket = await client.verifyIdToken({
-        idToken: token,
-        audience: process.env.GOOGLE_CLIENT_ID,
+  const { token } = req.body;
+
+  const ticket = await client.verifyIdToken({
+    idToken: token,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const { name, email } = ticket.getPayload();
+
+  let user = await User.findOne({ email });
+  let isNewUser = false;
+
+  if (user) {
+    // Existing user
+    user.lastLogin = new Date();
+    await user.save();
+  } else {
+    // First-time Google login
+    const password = crypto.randomBytes(16).toString("hex"); // random pw
+    user = await User.create({
+      fullName: name,
+      email,
+      password, // hashed by pre-save hook
+      lastLogin: new Date(),
     });
-    const { name, email, picture } = ticket.getPayload();
+    isNewUser = true;
+  }
 
-    
-   
-    let user = await User.findOne({ email });
-
-    if (user) {
-        // User exists, log them in
-        user.lastLogin = new Date();
-        await user.save();
-    } else {
-        // User doesn't exist, create a new account
-        const username = email.split('@')[0] + Math.floor(Math.random() * 1000); // Generate a random username
-        const password = crypto.randomBytes(16).toString('hex'); // Generate a secure random password
-        
-        user = await User.create({
-            name,
-            email,
-            username,
-            password, // This will be hashed by the model pre-save hook
-            pic: picture,
-            subscriptionType: "Free Tier",
-            lastLogin: new Date(),
-        });
-    }
-
-    if (user) {
-        res.status(user.isNew ? 201 : 200).json({
-            _id: user._id,
-            username: user.username,
-            name: user.name,
-            email: user.email,
-            PhoneNumber: user.PhoneNumber,
-            pic: user.pic,
-            subscriptionType: user.subscriptionType,
-            lastLogin: user.lastLogin,
-            token: generateToken(user._id),
-        });
-    } else {
-        res.status(400);
-        throw new Error("Invalid user data from Google");
-    }
+  if (user) {
+    res.status(isNewUser ? 201 : 200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      PhoneNumber: user.PhoneNumber,
+      Role: user.Role || null, // might still be null for new users
+      lastLogin: user.lastLogin,
+      token: generateToken(user._id),
+      newUser: isNewUser, // 👈 send flag
+    });
+  } else {
+    res.status(400);
+    throw new Error("Invalid user data from Google");
+  }
 });
+
+export const assignRole = asyncHandler(async (req, res) => {
+  const { userId, Role } = req.body;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  user.Role = Role;
+  await user.save();
+
+  res.json({
+    _id: user._id,
+    fullName: user.fullName,
+    email: user.email,
+    PhoneNumber: user.PhoneNumber,
+    Role: user.Role,
+    lastLogin: user.lastLogin,
+    token: generateToken(user._id),
+  });
+});
+
 
 
 /**

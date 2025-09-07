@@ -3,28 +3,17 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
+  fullName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  // Role:{
-  //   type: String,
-  //   enum: ['Customer', 'Manufacturer','Retailer'],
-  //   default: 'user',
-  //   required: true
-  // },
-  subscriptionType:{
+  Role:{
     type: String,
-    enum: ['Free Tier', 'Basic', 'Premium'],
-    default: 'Free Tier',
+    enum: ['Consumer', 'Manufacturer','Retailer', 'Logistics'],
+    default: 'Consumer',
     required: true
   },
   dateJoined: { type: Date, default: Date.now },
   lastLogin: { type: Date },
-  pic: {
-    type: String,
-    default: 'https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg',
-  },
   PhoneNumber:{
     type: Number,
     required: false, 

@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom
 // Context
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import HandleLogin from "./components/HandleLogin";
 import DevDashboardRouter from "./DevDashboardRouter";
 
 // Pages
@@ -44,15 +45,20 @@ import LogisticsFleet from "./dashboards/logistics/LogisticsFleet";
 import LogisticsTracking from "./dashboards/logistics/LogisticsTracking";
 import LogisticsProfile from "./dashboards/logistics/LogisticsProfile";
 
+//providers
+import {ThemeProvider} from "./contexts/ThemeContext";
+
 function App() {
   return (
+
     <AuthProvider>
+      <ThemeProvider>
       <Router>
         <Routes>
           {/* --- PUBLIC ROUTES --- */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/auth/login" element={<AuthPage type="login" />} />
-          <Route path="/auth/signup" element={<AuthPage type="signup" />} />
+          <Route path="/auth/login" element={<HandleLogin><AuthPage type="login" /></HandleLogin>} />
+          <Route path="/auth/signup" element={<HandleLogin><AuthPage type="signup" /></HandleLogin>} />
 
           {/* --- PROTECTED DASHBOARD ROUTES --- */}
           <Route
@@ -107,6 +113,7 @@ function App() {
           <Route path="/dev/:role" element={<DevDashboardRouter />} />
         </Routes>
       </Router>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

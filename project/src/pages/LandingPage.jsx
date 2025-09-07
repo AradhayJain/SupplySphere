@@ -47,6 +47,7 @@ const useTheme = () => {
 // --- Navbar (Updated Design) ---
 const Navbar = ({ toggleTheme, currentTheme }) => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const { isAuthenticated , role } = useAuth();
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
@@ -67,10 +68,17 @@ const Navbar = ({ toggleTheme, currentTheme }) => {
             <a href="#team" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-teal-600 dark:hover:text-teal-500">Team</a>
             <a href="#faq" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-teal-600 dark:hover:text-teal-500">FAQ</a>
           </div>
-          <div className="flex items-center space-x-4">
-            <Link to="/auth/login" className="hidden sm:block"><Button variant="outline" size="md">Sign In</Button></Link>
-            <Link to="/auth/signup"><Button size="md">Request a Demo</Button></Link>
-          </div>
+          {
+            isAuthenticated ? (
+              <Link to={`/dashboard/${role.toLowerCase()}`}><Button variant="primary" size="md">Dashboard</Button></Link>
+
+            ) : (
+              <div className="flex items-center space-x-4">
+              <Link to="/auth/login" className="hidden sm:block"><Button variant="outline" size="md">Sign In</Button></Link>
+              <Link to="/auth/signup"><Button size="md">Request a Demo</Button></Link>
+             </div>
+            )
+          }
         </div>
       </div>
     </nav>
@@ -108,7 +116,7 @@ const AccordionItem = ({ question, answer }) => {
 // --- Supply Sphere Landing Page (Updated Content & Design) ---
 const LandingPage = () => {
   const [theme, toggleTheme] = useTheme();
-  // const { isAuthenticated, loading: authLoading } = useAuth();
+  
   // useEffect(() => {
   //   if (!authLoading && isAuthenticated) { navigate('/dashboard'); }
   // }, [isAuthenticated, authLoading, navigate]);
