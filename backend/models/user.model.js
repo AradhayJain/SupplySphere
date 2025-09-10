@@ -20,10 +20,13 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
-  // Address:{
-  //   type: String,
-  //   required: true
-  // },
+  Address:{
+    type: String,
+    required: false
+  },
+  CompanyName:{
+    type: String
+  },
   verificationOtp: String,
   verificationOtpExpire: Date,
   resetPasswordToken: String,

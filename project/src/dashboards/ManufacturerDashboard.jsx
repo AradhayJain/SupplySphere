@@ -1,14 +1,53 @@
 // src/dashboards/ManufacturerDashboard.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import ManufacturerHome from "./manufacturer/ManufacturerHome";
 import { Package, BarChart3, ClipboardList, User, Menu, X } from "lucide-react";
 
 const ManufacturerDashboard = ({ previewMode = false }) => {
-  const { user } = useAuth();
+  const { user, token, products } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // --- Orders + Metrics ---
+  const [pendingOrders, setPendingOrders] = useState(0);
+  const [stockValue, setStockValue] = useState(0);
+
+  useEffect(() => {
+    // Calculate stock value (sum of price * stock for all products)
+    if (products && products.length > 0) {
+      const totalValue = products.reduce(
+        (sum, p) => sum + (p.price || 0) * (p.stock || 0),
+        0
+      );
+      setStockValue(totalValue);
+    }
+  }, [products]);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/orders/my-orders", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          const pending = data.orders.filter(
+            (o) => o.status === "Pending"
+          ).length;
+          setPendingOrders(pending);
+        } else {
+          console.error(data.message || "Failed to fetch orders");
+        }
+      } catch (err) {
+        console.error("Orders fetch error:", err);
+      }
+    };
+
+    if (token) fetchOrders();
+  }, [token]);
 
   const sidebarLinks = [
     { name: "Home", path: "home", icon: BarChart3 },
@@ -131,19 +170,19 @@ const ManufacturerDashboard = ({ previewMode = false }) => {
             <div className="bg-dark-800 border border-dark-700 p-4 sm:p-6 rounded-2xl shadow-sm">
               <p className="text-sm text-light-500">Total Products</p>
               <h2 className="text-xl sm:text-2xl font-bold text-light-100">
-                128
+                {products.length}
               </h2>
             </div>
             <div className="bg-dark-800 border border-dark-700 p-4 sm:p-6 rounded-2xl shadow-sm">
               <p className="text-sm text-light-500">Stock Value</p>
               <h2 className="text-xl sm:text-2xl font-bold text-light-100">
-                ₹ 1,250,000
+                ₹ {stockValue.toLocaleString()}
               </h2>
             </div>
             <div className="bg-dark-800 border border-dark-700 p-4 sm:p-6 rounded-2xl shadow-sm">
               <p className="text-sm text-light-500">Pending Orders</p>
               <h2 className="text-xl sm:text-2xl font-bold text-light-100">
-                23
+                {pendingOrders}
               </h2>
             </div>
           </div>

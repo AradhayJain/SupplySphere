@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext();
 
@@ -16,6 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [role, setRole] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
     try {
@@ -37,6 +39,26 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // 🚀 Fetch products only if role is manufacturer
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (token) {
+        try {
+          const res = await axios.get('http://localhost:3000/api/products', {
+          });
+          if(res){
+            console.log(res.data)
+          }
+          setProducts(res.data.products || []);
+        } catch (error) {
+          console.error("Failed to fetch manufacturer products:", error);
+        }
+      }
+    };
+
+    fetchProducts();
+  }, [role, token]);
+
   const login = ({ token, Role, ...userData }) => {
     localStorage.setItem('supply_token', token);
     localStorage.setItem('supply_user', JSON.stringify(userData));
@@ -57,11 +79,12 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setRole(null);
     setIsAuthenticated(false);
+    setProducts([]);
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, token, role, isAuthenticated, loading, login, logout }}
+      value={{ user, token, role, isAuthenticated, loading, login, logout, products }}
     >
       {!loading && children}
     </AuthContext.Provider>

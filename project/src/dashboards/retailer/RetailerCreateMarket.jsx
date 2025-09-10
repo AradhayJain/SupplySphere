@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 
 const RetailerCreateMarket = () => {
   const [form, setForm] = useState({
@@ -6,94 +7,337 @@ const RetailerCreateMarket = () => {
     location: "",
     description: "",
   });
+  const [markets, setMarkets] = useState([]);
+  const [selectedMarket, setSelectedMarket] = useState(null); // market detail view
+  const [products, setProducts] = useState([]);
+  const [productForm, setProductForm] = useState({
+    name: "",
+    category: "",
+    description: "",
+    price: "",
+    minOrderQty: 1,
+    stock: "",
+    isExclusive: false,
+  });
 
-  const [markets, setMarkets] = useState([
-    { id: 1, name: "Downtown Market", location: "Delhi", description: "Electronics and gadgets hub" },
-    { id: 2, name: "City Bazaar", location: "Mumbai", description: "Clothing and lifestyle" },
-  ]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { token } = useAuth();
 
+  // Fetch markets on mount
+  useEffect(() => {
+    const fetchMarkets = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/retail", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok) setMarkets(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchMarkets();
+  }, []);
+
+  // Create market
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.location) return;
+    if (!form.name || !form.location) {
+      setError("Market name and location are required.");
+      return;
+    }
 
-    const newMarket = {
-      id: markets.length + 1,
-      ...form,
-    };
+    setLoading(true);
+    setError("");
 
-    setMarkets([...markets, newMarket]);
-    setForm({ name: "", location: "", description: "" });
+    try {
+      const res = await fetch("http://localhost:3000/api/retail", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to create market");
+
+      setMarkets([...markets, data]); // add new market
+      setForm({ name: "", location: "", description: "" });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Create Market</h1>
-      <p className="text-gray-500">Add and manage retail markets.</p>
+  // Open market detail
+  const openMarket = async (market) => {
+    setSelectedMarket(market);
 
-      {/* Market creation form */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-lg shadow-md space-y-4"
-      >
-        <div>
-          <label className="block text-sm font-medium mb-1">Market Name</label>
+    try {
+      const res = await fetch(
+        `http://localhost:3000/api/products?marketId=${market._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await res.json();
+      if (res.ok) setProducts(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Back to markets
+  const goBack = () => {
+    setSelectedMarket(null);
+    setProducts([]);
+    setProductForm({
+      name: "",
+      category: "",
+      description: "",
+      price: "",
+      minOrderQty: 1,
+      stock: "",
+      isExclusive: false,
+    });
+  };
+
+  // Handle product form
+  const handleProductChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setProductForm({
+      ...productForm,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  };
+
+  const handleProductSubmit = async (e) => {
+    e.preventDefault();
+    if (!productForm.name || !productForm.price || !productForm.stock) {
+      setError("Name, price, and stock are required.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("http://localhost:3000/api/products/retailer/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...productForm,
+          marketId: selectedMarket._id,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to add product");
+
+      setProducts([...products, data]);
+      setProductForm({
+        name: "",
+        category: "",
+        description: "",
+        price: "",
+        minOrderQty: 1,
+        stock: "",
+        isExclusive: false,
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Market detail view
+  if (selectedMarket) {
+    return (
+      <div className="space-y-6">
+        <button
+          onClick={goBack}
+          className="px-4 py-2 bg-gray-700 text-white rounded-md"
+        >
+          ← Back to Markets
+        </button>
+
+        <div className="bg-dark-800 border border-dark-700 p-6 rounded-xl shadow-card">
+          <h2 className="text-2xl font-bold text-light-100">
+            {selectedMarket.name}
+          </h2>
+          <p className="text-sm text-light-400">{selectedMarket.description}</p>
+          <p className="text-sm text-light-300 mt-2">
+            Owner: {selectedMarket.owner?.companyName} | Email:{" "}
+            {selectedMarket.owner?.email} | Phone:{" "}
+            {selectedMarket.owner?.phoneNumber}
+          </p>
+        </div>
+
+        {/* Product Form */}
+        <form
+          onSubmit={handleProductSubmit}
+          className="bg-dark-800 border border-dark-700 p-6 rounded-xl shadow-card space-y-4"
+        >
+          {error && <p className="text-red-500">{error}</p>}
+          <h3 className="text-lg font-bold text-light-100">Add Product</h3>
           <input
             type="text"
             name="name"
-            value={form.name}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="Enter market name"
+            placeholder="Product name"
+            value={productForm.name}
+            onChange={handleProductChange}
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Location</label>
           <input
             type="text"
-            name="location"
-            value={form.location}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="Enter city or region"
+            name="category"
+            placeholder="Category"
+            value={productForm.category}
+            onChange={handleProductChange}
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Description</label>
           <textarea
             name="description"
-            value={form.description}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="Brief description"
-          ></textarea>
+            placeholder="Description"
+            value={productForm.description}
+            onChange={handleProductChange}
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+          />
+          <input
+            type="number"
+            name="price"
+            placeholder="Price"
+            value={productForm.price}
+            onChange={handleProductChange}
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+          />
+          <input
+            type="number"
+            name="minOrderQty"
+            placeholder="Min Order Quantity"
+            value={productForm.minOrderQty}
+            onChange={handleProductChange}
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+          />
+          <input
+            type="number"
+            name="stock"
+            placeholder="Stock"
+            value={productForm.stock}
+            onChange={handleProductChange}
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+          />
+          <label className="flex items-center space-x-2 text-light-100">
+            <input
+              type="checkbox"
+              name="isExclusive"
+              checked={productForm.isExclusive}
+              onChange={handleProductChange}
+            />
+            Exclusive Product
+          </label>
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-primary text-white px-4 py-2 rounded-md"
+          >
+            {loading ? "Adding..." : "Add Product"}
+          </button>
+        </form>
+
+        {/* Product List */}
+        <div className="space-y-3">
+          {/* {products.map((p) => (
+            <div
+              key={p._id || p.id}
+              className="bg-dark-900 border border-dark-600 p-4 rounded-md"
+            >
+              <h4 className="text-light-100 font-semibold">{p.name}</h4>
+              <p className="text-light-400">{p.category}</p>
+              <p className="text-light-500">{p.description}</p>
+              <p className="text-light-300">
+                Price: ₹{p.price} | Stock: {p.stock}
+              </p>
+            </div>
+          ))} */}
         </div>
+      </div>
+    );
+  }
+
+  // Main markets page (with Create Market form)
+  return (
+    <div className="space-y-8">
+      {/* Create Market Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="bg-dark-800 border border-dark-700 p-6 rounded-xl shadow-card space-y-4"
+      >
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+        <h2 className="text-xl font-bold text-light-100">Create Market</h2>
+        <input
+          type="text"
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          placeholder="Market Name"
+          className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+        />
+        <input
+          type="text"
+          name="location"
+          value={form.location}
+          onChange={handleChange}
+          placeholder="Location"
+          className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+        />
+        <textarea
+          name="description"
+          value={form.description}
+          onChange={handleChange}
+          placeholder="Description"
+          className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+        />
         <button
           type="submit"
-          className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 transition"
+          disabled={loading}
+          className="bg-primary text-white px-4 py-2 rounded-md"
         >
-          Create Market
+          {loading ? "Creating..." : "Create Market"}
         </button>
       </form>
 
-      {/* Market list */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-lg font-bold mb-4">Your Markets</h2>
-        <ul className="space-y-3">
-          {markets.map((market) => (
-            <li
-              key={market.id}
-              className="border p-4 rounded-md hover:bg-gray-50 transition"
-            >
-              <h3 className="font-semibold">{market.name}</h3>
-              <p className="text-sm text-gray-500">{market.location}</p>
-              <p className="text-sm text-gray-400">{market.description}</p>
-            </li>
-          ))}
-        </ul>
+      {/* Markets List */}
+      <div className="space-y-3">
+        <h2 className="text-xl font-bold text-light-100">Your Markets</h2>
+        {markets.length === 0 ? (
+          <p className="text-light-400">No markets created yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {markets.map((market) => (
+              <li
+                key={market._id || market.id}
+                className="bg-dark-900 p-4 border border-dark-600 rounded-md cursor-pointer hover:border-primary transition-colors"
+                onClick={() => openMarket(market)}
+              >
+                <h3 className="text-light-100 font-semibold">{market.name}</h3>
+                <p className="text-light-400">{market.location}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

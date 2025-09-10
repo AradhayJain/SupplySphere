@@ -22,6 +22,7 @@ export default function AuthPage({ type = "login" }) {
     phoneNumber: "",
     email: "",
     password: "",
+    companyName: "", // 👈 added here
   });
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -32,50 +33,60 @@ export default function AuthPage({ type = "login" }) {
   const { login } = useAuth();
   const { theme } = useTheme();
 
-  // Replace with your actual Google Client ID
-  const GOOGLE_CLIENT_ID = "218370217453-ogrkkq14glkqus2q0d69p60bbh59hu53.apps.googleusercontent.com";
+  const GOOGLE_CLIENT_ID =
+    "218370217453-ogrkkq14glkqus2q0d69p60bbh59hu53.apps.googleusercontent.com";
 
   const handleRoleSelect = async (selectedRole) => {
-  try {
-    const res = await axios.post("http://localhost:3000/api/user/assign-role", {
-      userId: pendingUser._id,
-      Role: selectedRole,
-    });
+    try {
+      const res = await axios.post("http://localhost:3000/api/user/assign-role", {
+        userId: pendingUser._id,
+        Role: selectedRole,
+      });
 
-    const updatedUser = res.data;
-    login(updatedUser);
-    setShowRoleModal(false);
-    redirectToDashboard(updatedUser.Role);
-  } catch (error) {
-    console.error(error);
-    alert("Failed to assign role.");
-  }
-};
+      const updatedUser = res.data;
+      login(updatedUser);
+      setShowRoleModal(false);
+      redirectToDashboard(updatedUser.Role);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to assign role.");
+    }
+  };
 
-const redirectToDashboard = (role) => {
-  switch (role) {
-    case "Manufacturer":
-      navigate("/dashboard/manufacturer");
-      break;
-    case "Retailer":
-      navigate("/dashboard/retailer");
-      break;
-    case "Consumer":
-      navigate("/dashboard/consumer");
-      break;
-    case "Logistics":
-      navigate("/dashboard/logistics");
-      break;
-    default:
-      navigate("/dashboard");
-  }
-};
+  const redirectToDashboard = (role) => {
+    switch (role) {
+      case "Manufacturer":
+        navigate("/dashboard/manufacturer");
+        break;
+      case "Retailer":
+        navigate("/dashboard/retailer");
+        break;
+      case "Consumer":
+        navigate("/dashboard/consumer");
+        break;
+      case "Logistics":
+        navigate("/dashboard/logistics");
+        break;
+      default:
+        navigate("/dashboard");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (type === "signup" && !role) {
       alert("Please select a role.");
+      return;
+    }
+
+    // If role requires company name, check it
+    if (
+      type === "signup" &&
+      ["Manufacturer", "Retailer", "Logistics"].includes(role) &&
+      !form.companyName.trim()
+    ) {
+      alert("Please enter your company name.");
       return;
     }
 
@@ -87,13 +98,18 @@ const redirectToDashboard = (role) => {
           PhoneNumber: form.phoneNumber,
           email: form.email,
           password: form.password,
-          Role:role,
+          Role: role,
+          CompanyName:
+            ["Manufacturer", "Retailer", "Logistics"].includes(role) &&
+            form.companyName
+              ? form.companyName
+              : null,
         });
 
         alert("Registration successful! Please login.");
         navigate("/auth/login");
       } else {
-        const {data} = await axios.post("http://localhost:3000/api/user/login", {
+        const { data } = await axios.post("http://localhost:3000/api/user/login", {
           email: form.email,
           password: form.password,
         });
@@ -127,28 +143,26 @@ const redirectToDashboard = (role) => {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-  try {
-    console.log(credentialResponse);
-    const res = await axios.post("http://localhost:3000/api/user/google-login", {
-      token: credentialResponse.credential,
-    });
+    try {
+      console.log(credentialResponse);
+      const res = await axios.post("http://localhost:3000/api/user/google-login", {
+        token: credentialResponse.credential,
+      });
 
-    const userData = res.data;
+      const userData = res.data;
 
-    if (userData.newUser) {
-      // Show popup/modal for role selection
-      setPendingUser(userData); // store temporarily
-      setShowRoleModal(true);   // open modal
-    } else {
-      login(userData);
-      redirectToDashboard(userData.Role);
+      if (userData.newUser) {
+        setPendingUser(userData);
+        setShowRoleModal(true);
+      } else {
+        login(userData);
+        redirectToDashboard(userData.Role);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Google login failed.");
     }
-  } catch (error) {
-    console.error(error);
-    alert("Google login failed.");
-  }
-};
-
+  };
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
@@ -275,7 +289,26 @@ const redirectToDashboard = (role) => {
                 </div>
               )}
 
-              <Button type="submit" className="w-full btn-primary" disabled={loading}>
+              {/* 👇 Conditionally show Company Name */}
+              {type === "signup" &&
+                ["Manufacturer", "Retailer", "Logistics"].includes(role) && (
+                  <Input
+                    label="Company Name"
+                    placeholder="Enter your company name"
+                    type="text"
+                    className="placeholder-gray-400 dark:placeholder-gray-500"
+                    value={form.companyName}
+                    onChange={(e) =>
+                      setForm({ ...form, companyName: e.target.value })
+                    }
+                  />
+                )}
+
+              <Button
+                type="submit"
+                className="w-full btn-primary"
+                disabled={loading}
+              >
                 {loading
                   ? "Processing..."
                   : type === "login"
@@ -285,20 +318,18 @@ const redirectToDashboard = (role) => {
             </form>
 
             {/* Google Auth */}
-           {/* Google Auth */}
-<div className="mt-6 flex justify-center">
-  <div className="w-full">
-    <GoogleLogin
-      onSuccess={handleGoogleSuccess}
-      onError={() => alert("Google Login Failed")}
-      width="100%" // ensures the Google button stretches full width
-      theme="outline"
-      size="large"
-      shape="rectangular"
-    />
-  </div>
-</div>
-
+            <div className="mt-6 flex justify-center">
+              <div className="w-full">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => alert("Google Login Failed")}
+                  width="100%"
+                  theme="outline"
+                  size="large"
+                  shape="rectangular"
+                />
+              </div>
+            </div>
 
             {/* Switch Link */}
             <p className="mt-6 text-sm text-gray-500 dark:text-gray-300">
@@ -326,18 +357,28 @@ const redirectToDashboard = (role) => {
             </p>
           </motion.div>
         </div>
+
+        {/* Role Modal for Google Signup */}
         {showRoleModal && (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div className="bg-white dark:bg-gray-900 p-6 rounded-xl w-96 shadow-lg">
-      <h2 className="text-lg font-semibold mb-4">Select Your Role</h2>
-      <div className="grid grid-cols-2 gap-4">
+      <h2 className="text-lg font-semibold mb-4">Complete Your Profile</h2>
+
+      {/* Role Selection */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
         {roles.map((r) => {
           const Icon = r.icon;
+          const selected = role === r.id;
           return (
             <button
               key={r.id}
-              onClick={() => handleRoleSelect(r.id)}
-              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-teal-600 hover:text-white transition"
+              type="button"
+              onClick={() => setRole(r.id)}
+              className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition
+                ${selected
+                  ? "bg-teal-600 text-white border-transparent"
+                  : "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600"
+                }`}
             >
               <Icon className="w-6 h-6" />
               <span>{r.label}</span>
@@ -345,6 +386,59 @@ const redirectToDashboard = (role) => {
           );
         })}
       </div>
+
+      {/* Company Name Field (only for Mfg, Retailer, Logistics) */}
+      {["Manufacturer", "Retailer", "Logistics"].includes(role) && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+            Company Name
+          </label>
+          <input
+            type="text"
+            placeholder="Enter your company name"
+            value={form.companyName || ""}
+            onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+            className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-800 
+                       text-gray-900 dark:text-gray-100 
+                       placeholder-gray-400 dark:placeholder-gray-500"
+          />
+        </div>
+      )}
+
+      {/* Submit Button */}
+      <button
+        onClick={async () => {
+          if (!role) return alert("Please select a role.");
+          if (
+            ["Manufacturer", "Retailer", "Logistics"].includes(role) &&
+            !form.companyName
+          ) {
+            return alert("Please enter your Company Name.");
+          }
+
+          try {
+            const res = await axios.post(
+              "http://localhost:3000/api/user/assign-role",
+              {
+                userId: pendingUser._id,
+                Role: role,
+                CompanyName: form.companyName || null,
+              }
+            );
+
+            const updatedUser = res.data;
+            login(updatedUser);
+            setShowRoleModal(false);
+            redirectToDashboard(updatedUser.Role);
+          } catch (err) {
+            console.error(err);
+            alert("Failed to save role.");
+          }
+        }}
+        className="w-full py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+      >
+        Continue
+      </button>
     </div>
   </div>
 )}

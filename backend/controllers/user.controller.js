@@ -17,7 +17,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
  * @access Public
  */
 export const registerUser = asyncHandler(async (req, res) => {
-  const { fullName, email, password, PhoneNumber, Role } = req.body;
+  const { fullName, email, password, PhoneNumber, Role, CompanyName } = req.body;
 
   if (!fullName || !email || !password) {
     res.status(400);
@@ -37,17 +37,22 @@ export const registerUser = asyncHandler(async (req, res) => {
     email,
     password,
     PhoneNumber,
-    Role: Role || 'Consumer',
-    lastLogin: new Date() // current date
+    Role: Role || "Consumer",
+    CompanyName:
+      ["Manufacturer", "Retailer", "Logistics"].includes(Role) && CompanyName
+        ? CompanyName
+        : null,
+    lastLogin: new Date(),
   });
 
   if (user) {
     res.status(201).json({
       _id: user._id,
-      fullName: user.name,
+      fullName: user.fullName,
       email: user.email,
       Role: user.Role,
       PhoneNumber: user.PhoneNumber,
+      CompanyName: user.CompanyName,
       lastLogin: user.lastLogin,
       token: generateToken(user._id),
     });
@@ -56,7 +61,6 @@ export const registerUser = asyncHandler(async (req, res) => {
     throw new Error("Failed to create user");
   }
 });
-
 
 /**
  * @desc Authenticate user & get token
@@ -68,16 +72,16 @@ export const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
 
   if (user && (await user.matchPassword(password))) {
-    // Update lastLogin timestamp
     user.lastLogin = new Date();
     await user.save();
 
     res.status(200).json({
       _id: user._id,
-      fullName: user.name,
+      fullName: user.fullName,
       email: user.email,
       PhoneNumber: user.PhoneNumber,
       Role: user.Role,
+      CompanyName: user.CompanyName,
       lastLogin: user.lastLogin,
       token: generateToken(user._id),
     });
@@ -106,16 +110,14 @@ export const googleAuth = asyncHandler(async (req, res) => {
   let isNewUser = false;
 
   if (user) {
-    // Existing user
     user.lastLogin = new Date();
     await user.save();
   } else {
-    // First-time Google login
     const password = crypto.randomBytes(16).toString("hex"); // random pw
     user = await User.create({
       fullName: name,
       email,
-      password, // hashed by pre-save hook
+      password,
       lastLogin: new Date(),
     });
     isNewUser = true;
@@ -127,10 +129,11 @@ export const googleAuth = asyncHandler(async (req, res) => {
       fullName: user.fullName,
       email: user.email,
       PhoneNumber: user.PhoneNumber,
-      Role: user.Role || null, // might still be null for new users
+      Role: user.Role || null,
+      CompanyName: user.CompanyName || null,
       lastLogin: user.lastLogin,
       token: generateToken(user._id),
-      newUser: isNewUser, // 👈 send flag
+      newUser: isNewUser,
     });
   } else {
     res.status(400);
@@ -138,8 +141,13 @@ export const googleAuth = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * @desc Assign Role (after Google login or update)
+ * @route POST /api/user/assign-role
+ * @access Public
+ */
 export const assignRole = asyncHandler(async (req, res) => {
-  const { userId, Role } = req.body;
+  const { userId, Role, CompanyName } = req.body;
 
   const user = await User.findById(userId);
   if (!user) {
@@ -148,6 +156,9 @@ export const assignRole = asyncHandler(async (req, res) => {
   }
 
   user.Role = Role;
+  if (["Manufacturer", "Retailer", "Logistics"].includes(Role)) {
+    user.CompanyName = CompanyName || null;
+  }
   await user.save();
 
   res.json({
@@ -156,11 +167,11 @@ export const assignRole = asyncHandler(async (req, res) => {
     email: user.email,
     PhoneNumber: user.PhoneNumber,
     Role: user.Role,
+    CompanyName: user.CompanyName,
     lastLogin: user.lastLogin,
     token: generateToken(user._id),
   });
 });
-
 
 
 /**

@@ -1,87 +1,117 @@
 import React, { useEffect, useState } from "react";
 import { Plus, X, Edit, Eye, Trash2 } from "lucide-react";
-
-const STORAGE_KEY = "supply_sphere_manufacturer_products";
-
-const defaultProducts = [
-  {
-    id: "PR-1001",
-    name: "Wheat Flour 25kg",
-    sku: "WF-25",
-    category: "Grains",
-    stock: 120,
-    price: 1200,
-    active: true,
-    createdAt: "2025-08-01",
-  },
-  {
-    id: "PR-1002",
-    name: "Rice 50kg",
-    sku: "RC-50",
-    category: "Grains",
-    stock: 80,
-    price: 2400,
-    active: true,
-    createdAt: "2025-08-05",
-  },
-  {
-    id: "PR-1003",
-    name: "Olive Oil 5L",
-    sku: "OO-5",
-    category: "Oils",
-    stock: 40,
-    price: 1800,
-    active: true,
-    createdAt: "2025-08-10",
-  },
-];
+import { useAuth } from "../../contexts/AuthContext";
 
 const ManufacturerInventory = () => {
-  const [products, setProducts] = useState(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : defaultProducts;
-    } catch (e) {
-      return defaultProducts;
-    }
-  });
+  const { user, token, products, setProducts } = useAuth(); // ✅ use global products from context
 
   const [form, setForm] = useState({
     name: "",
     sku: "",
     category: "",
-    stock: 0,
+    description: "",
+    images: [],
     price: 0,
+    minOrderQty: 1,
+    stock: 0,
+    dynamicPricing: false,
+    isExclusive: false,
+    exclusiveRetailer: "",
     active: true,
   });
+
   const [selected, setSelected] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // search / filter / pagination
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const perPage = 8;
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-  }, [products]);
+  const perPage = 6;
 
   const resetForm = () =>
-    setForm({ name: "", sku: "", category: "", stock: 0, price: 0, active: true });
+    setForm({
+      name: "",
+      sku: "",
+      category: "",
+      description: "",
+      images: [],
+      price: 0,
+      minOrderQty: 1,
+      stock: 0,
+      dynamicPricing: false,
+      isExclusive: false,
+      exclusiveRetailer: "",
+      active: true,
+    });
+
+  // Handle image upload
+  const handleImageUpload = (e, target = "form") => {
+    const files = Array.from(e.target.files);
+    const readers = files.map(
+      (file) =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        })
+    );
+    Promise.all(readers).then((imgs) => {
+      if (target === "form") {
+        setForm((f) => ({ ...f, images: [...f.images, ...imgs] }));
+      } else {
+        setSelected((p) => ({ ...p, images: [...p.images, ...imgs] }));
+      }
+    });
+  };
 
   // Add product
-  const addProduct = (e) => {
+  const addProduct = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.sku.trim())
-      return alert("Product name and SKU are required");
 
-    const id = `PR-${Math.floor(Math.random() * 9000) + 1000}`;
-    const createdAt = new Date().toISOString().split("T")[0];
-    const newProd = { id, ...form, createdAt };
-    setProducts((p) => [newProd, ...p]);
-    resetForm();
-    setCurrentPage(1);
+    if (!form.name.trim() || !form.sku.trim()) {
+      return alert("Product name and SKU are required");
+    }
+
+    try {
+      const response = await fetch("http://localhost:3000/api/products/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          role: "Manufacturer",
+          sellerId: user?._id,
+          name: form.name,
+          sku: form.sku,
+          category: form.category,
+          description: form.description,
+          images: form.images || [],
+          price: Number(form.price),
+          minOrderQty: Number(form.minOrderQty) || 1,
+          pricingTiers: form.pricingTiers || [],
+          stock: Number(form.stock),
+          dynamicPricing: form.dynamicPricing,
+          isExclusive: form.isExclusive,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to add product");
+      }
+
+      // ✅ Update global state
+      setProducts((prev) => [data.product, ...prev]);
+      resetForm();
+      setCurrentPage(1);
+      alert("✅ Product added successfully!");
+    } catch (err) {
+      console.error("Add product error:", err);
+      alert(err.message);
+    }
   };
 
   // Edit
@@ -93,7 +123,8 @@ const ManufacturerInventory = () => {
   const saveEdit = () => {
     if (!selected.name.trim() || !selected.sku.trim())
       return alert("Product name and SKU are required");
-    setProducts((p) => p.map((x) => (x.id === selected.id ? selected : x)));
+
+    setProducts((p) => p.map((x) => (x._id === selected._id ? selected : x)));
     setIsEditing(false);
     setSelected(null);
   };
@@ -102,19 +133,8 @@ const ManufacturerInventory = () => {
   const deleteProduct = (productId) => {
     if (!window.confirm("Delete this product? This action cannot be undone."))
       return;
-    setProducts((p) => p.filter((x) => x.id !== productId));
+    setProducts((p) => p.filter((x) => x._id !== productId));
     setSelected(null);
-  };
-
-  // Stock adjust
-  const adjustStock = (productId, delta) => {
-    setProducts((p) =>
-      p.map((x) =>
-        x.id === productId
-          ? { ...x, stock: Math.max(0, x.stock + delta) }
-          : x
-      )
-    );
   };
 
   // Filters
@@ -152,262 +172,267 @@ const ManufacturerInventory = () => {
       </div>
 
       {/* Add product */}
-      <div className="bg-dark-800/60 border border-dark-700 backdrop-blur-lg rounded-2xl p-4 md:p-6 shadow-lg">
-        <h2 className="font-semibold text-light-100 mb-4 flex items-center gap-2">
-          <Plus className="w-5 h-5 text-teal-400" /> Add New Product
-        </h2>
-        <form
-          onSubmit={addProduct}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
-        >
-          {[
-            { name: "name", placeholder: "Product name", type: "text" },
-            { name: "sku", placeholder: "SKU", type: "text" },
-            { name: "category", placeholder: "Category", type: "text" },
-            { name: "stock", placeholder: "Stock", type: "number" },
-            { name: "price", placeholder: "Price (INR)", type: "number" },
-          ].map((f, i) => (
-            <input
-              key={f.name}
-              name={f.name}
-              type={f.type}
-              value={form[f.name]}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  [f.name]:
-                    f.type === "number" ? Number(e.target.value) : e.target.value,
-                })
-              }
-              placeholder={f.placeholder}
-              className={`bg-dark-700/50 text-light-100 border border-dark-600 rounded-lg px-3 py-2 placeholder-light-500 focus:ring-2 focus:ring-teal-500 w-full`}
-              required={i < 2}
-            />
-          ))}
-          <label className="flex items-center gap-2 text-light-300">
-            <input
-              type="checkbox"
-              checked={form.active}
-              onChange={(e) => setForm({ ...form, active: e.target.checked })}
-              className="accent-teal-500"
-            />
-            Active
-          </label>
-          <button
-            type="submit"
-            className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-4 py-2 rounded-lg shadow hover:opacity-90 transition col-span-full sm:col-span-1"
-          >
-            Add Product
-          </button>
-        </form>
-      </div>
+      {/* Add product */}
+<div className="bg-dark-800/60 border border-dark-700 rounded-2xl p-4 md:p-6 shadow-lg">
+  <h2 className="font-semibold text-black mb-4 flex items-center gap-2">
+    <Plus className="w-5 h-5 text-teal-400" /> Add New Product
+  </h2>
 
-      {/* Search & filters */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <input
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1);
-          }}
-          placeholder="Search by name or SKU"
-          className="bg-dark-700/50 text-light-100 border border-dark-600 rounded-lg px-3 py-2 placeholder-light-500 focus:ring-2 focus:ring-teal-500 w-full md:w-1/3"
-        />
-        <div className="flex items-center gap-3 flex-wrap">
-          <select
-            value={categoryFilter}
-            onChange={(e) => {
-              setCategoryFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="bg-dark-700/50 text-light-100 border border-dark-600 rounded-lg px-3 py-2"
-          >
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <select
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === "stock-low")
-                setProducts((p) => [...p].sort((a, b) => a.stock - b.stock));
-              if (val === "stock-high")
-                setProducts((p) => [...p].sort((a, b) => b.stock - a.stock));
-              if (val === "recent")
-                setProducts((p) =>
-                  [...p].sort(
-                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                  )
-                );
-            }}
-            className="bg-dark-700/50 text-light-100 border border-dark-600 rounded-lg px-3 py-2"
-          >
-            <option value="">Sort</option>
-            <option value="stock-low">Stock: Low → High</option>
-            <option value="stock-high">Stock: High → Low</option>
-            <option value="recent">Newest</option>
-          </select>
-        </div>
+  <form onSubmit={addProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {/* Product Name */}
+    <div>
+      <label className="text-light-300 text-sm mb-1 block">Product Name *</label>
+      <input
+        value={form.name}
+        onChange={(e) => setForm({ ...form, name: e.target.value })}
+        placeholder="e.g., Premium Rice Bag"
+        className="w-full bg-dark-700/50 text-black border border-dark-600 rounded-lg px-3 py-2"
+        required
+      />
+    </div>
+
+    {/* SKU */}
+    <div>
+      <label className="text-light-300 text-sm mb-1 block">SKU *</label>
+      <input
+        value={form.sku}
+        onChange={(e) => setForm({ ...form, sku: e.target.value })}
+        placeholder="e.g., RICE-25KG"
+        className="w-full bg-dark-700/50 text-black border border-dark-600 rounded-lg px-3 py-2"
+        required
+      />
+    </div>
+
+    {/* Category */}
+    <div>
+      <label className="text-light-300 text-sm mb-1 block">Category</label>
+      <input
+        value={form.category}
+        onChange={(e) => setForm({ ...form, category: e.target.value })}
+        placeholder="e.g., Food / Beverages"
+        className="w-full bg-dark-700/50 text-black border border-dark-600 rounded-lg px-3 py-2"
+      />
+    </div>
+
+    {/* Price */}
+    <div>
+      <label className="text-light-300 text-sm mb-1 block">Price (INR) *</label>
+      <input
+        type="number"
+        value={form.price}
+        onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+        placeholder="e.g., 1200"
+        className="w-full bg-dark-700/50 text-black border border-dark-600 rounded-lg px-3 py-2"
+        required
+      />
+    </div>
+
+    {/* Stock */}
+    <div>
+      <label className="text-light-300 text-sm mb-1 block">Stock *</label>
+      <input
+        type="number"
+        value={form.stock}
+        onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
+        placeholder="e.g., 500"
+        className="w-full bg-dark-700/50 text-black border border-dark-600 rounded-lg px-3 py-2"
+        required
+      />
+    </div>
+
+    {/* Min Order Qty */}
+    <div>
+      <label className="text-light-300 text-sm mb-1 block">Minimum Order Qty</label>
+      <input
+        type="number"
+        value={form.minOrderQty}
+        onChange={(e) => setForm({ ...form, minOrderQty: Number(e.target.value) })}
+        placeholder="e.g., 5"
+        className="w-full bg-dark-700/50 text-black border border-dark-600 rounded-lg px-3 py-2"
+      />
+    </div>
+
+    {/* Description */}
+    <div className="md:col-span-2">
+      <label className="text-light-300 text-sm mb-1 block">Description</label>
+      <textarea
+        value={form.description}
+        onChange={(e) => setForm({ ...form, description: e.target.value })}
+        placeholder="Enter a short description of the product..."
+        className="w-full bg-dark-700/50 text-black border border-dark-600 rounded-lg px-3 py-2"
+        rows={3}
+      />
+    </div>
+
+    {/* Image Upload */}
+    <div className="md:col-span-2">
+      <label className="text-light-300 text-sm mb-1 block">Upload Product Images</label>
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={(e) => handleImageUpload(e, "form")}
+        className="block w-full text-sm text-light-400"
+      />
+      <div className="flex gap-2 mt-2 flex-wrap">
+        {form.images.map((img, i) => (
+          <img
+            key={i}
+            src={img}
+            alt="preview"
+            className="w-16 h-16 object-cover rounded-lg border border-dark-600"
+          />
+        ))}
       </div>
+    </div>
+
+    {/* Dynamic Pricing */}
+    <label className="flex items-center gap-2 text-light-300 md:col-span-2">
+      <input
+        type="checkbox"
+        checked={form.dynamicPricing}
+        onChange={(e) => setForm({ ...form, dynamicPricing: e.target.checked })}
+        className="accent-teal-500"
+      />
+      Enable Dynamic Pricing
+    </label>
+
+    {/* Exclusive Retailer */}
+    <label className="flex items-center gap-2 text-light-300 md:col-span-2">
+      <input
+        type="checkbox"
+        checked={form.isExclusive}
+        onChange={(e) => setForm({ ...form, isExclusive: e.target.checked })}
+        className="accent-teal-500"
+      />
+      Exclusive to a Retailer
+    </label>
+
+    {form.isExclusive && (
+      <div className="md:col-span-2">
+        <label className="text-light-300 text-sm mb-1 block">Retailer ID</label>
+        <input
+          type="text"
+          value={form.exclusiveRetailer}
+          onChange={(e) => setForm({ ...form, exclusiveRetailer: e.target.value })}
+          placeholder="Enter retailer ID"
+          className="w-full bg-dark-700/50 text-black border border-dark-600 rounded-lg px-3 py-2"
+        />
+      </div>
+    )}
+
+    {/* Submit */}
+    <button
+      type="submit"
+      className="md:col-span-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-4 py-2 rounded-lg shadow hover:opacity-90 transition"
+    >
+      Add Product
+    </button>
+  </form>
+</div>
+
 
       {/* Products table */}
-      <div className="bg-dark-800/60 border border-dark-700 backdrop-blur-lg rounded-2xl shadow-lg p-4">
+      <div className="bg-dark-800/60 border border-dark-700 rounded-2xl p-4 md:p-6">
+        <h2 className="font-semibold text-black mb-4">Inventory</h2>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-dark-700 text-light-300">
-              <tr>
-                <th className="px-3 py-2 text-left">SKU</th>
-                <th className="px-3 py-2 text-left">Product</th>
-                <th className="px-3 py-2 text-left">Category</th>
-                <th className="px-3 py-2 text-right">Stock</th>
-                <th className="px-3 py-2 text-right">Price</th>
-                <th className="px-3 py-2 text-right">Actions</th>
+          <table className="w-full text-sm text-left text-light-300">
+            <thead>
+              <tr className="border-b border-dark-600 text-light-400">
+                <th className="py-2 px-3">Image</th>
+                <th className="py-2 px-3">Name</th>
+                <th className="py-2 px-3">Category</th>
+                <th className="py-2 px-3">Price</th>
+                <th className="py-2 px-3">Stock</th>
+                <th className="py-2 px-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {pageItems.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-t border-dark-700 hover:bg-dark-700/40 text-light-200"
-                >
-                  <td className="px-3 py-2">{p.sku}</td>
-                  <td className="px-3 py-2">{p.name}</td>
-                  <td className="px-3 py-2">{p.category}</td>
-                  <td className="px-3 py-2 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => adjustStock(p.id, -1)}
-                        className="px-2 py-1 bg-dark-700 text-light-200 rounded-lg hover:bg-dark-600"
-                      >
-                        -
-                      </button>
-                      <span className="w-12 text-right">{p.stock}</span>
-                      <button
-                        onClick={() => adjustStock(p.id, 1)}
-                        className="px-2 py-1 bg-dark-700 text-light-200 rounded-lg hover:bg-dark-600"
-                      >
-                        +
-                      </button>
-                    </div>
+                <tr key={p.id} className="border-b border-dark-700">
+                  <td className="py-2 px-3">
+                    {p.images?.length > 0 ? (
+                      <img
+                        src={p.images[0]}
+                        alt={p.name}
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                    ) : (
+                      <span className="text-xs text-light-500">No Image</span>
+                    )}
                   </td>
-                  <td className="px-3 py-2 text-right">
-                    ₹ {p.price.toLocaleString()}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <div className="flex justify-end gap-2 flex-wrap">
-                      <button
-                        onClick={() => setSelected(p)}
-                        className="px-3 py-1 bg-dark-700 hover:bg-dark-600 text-light-200 rounded-lg flex items-center gap-1"
-                      >
-                        <Eye className="w-4 h-4" /> View
-                      </button>
-                      <button
-                        onClick={() => startEdit(p)}
-                        className="px-3 py-1 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg flex items-center gap-1"
-                      >
-                        <Edit className="w-4 h-4" /> Edit
-                      </button>
-                      <button
-                        onClick={() => deleteProduct(p.id)}
-                        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-1"
-                      >
-                        <Trash2 className="w-4 h-4" /> Delete
-                      </button>
-                    </div>
+                  <td className="py-2 px-3 font-medium text-black">{p.name}</td>
+                  <td className="py-2 px-3">{p.category}</td>
+                  <td className="py-2 px-3">₹{p.price}</td>
+                  <td className="py-2 px-3">{p.stock}</td>
+                  <td className="py-2 px-3 flex gap-2">
+                    <button
+                      onClick={() => setSelected(p)}
+                      className="text-green-400 hover:text-green-300"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      onClick={() => startEdit(p)}
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={() => deleteProduct(p.id)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </td>
                 </tr>
               ))}
-
-              {pageItems.length === 0 && (
-                <tr>
-                  <td
-                    colSpan="6"
-                    className="text-center py-6 text-light-500"
-                  >
-                    No products found.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
-          <button
-            onClick={() => setCurrentPage((s) => Math.max(1, s - 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 bg-dark-700 text-light-200 rounded-lg disabled:opacity-50 hover:bg-dark-600"
-          >
-            Previous
-          </button>
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`px-3 py-1 rounded-lg ${
-                currentPage === i + 1
-                  ? "bg-gradient-to-r from-teal-500 to-emerald-500 text-white"
-                  : "bg-dark-700 text-light-200 hover:bg-dark-600"
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-          <button
-            onClick={() => setCurrentPage((s) => Math.min(totalPages, s + 1))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 bg-dark-700 text-light-200 rounded-lg disabled:opacity-50 hover:bg-dark-600"
-          >
-            Next
-          </button>
         </div>
       </div>
 
       {/* View Modal */}
       {selected && !isEditing && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 p-4">
-          <div className="bg-dark-800/90 border border-dark-700 backdrop-blur-lg rounded-2xl shadow-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-dark-800 rounded-xl p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-light-100 mb-3 flex items-center gap-2">
               <Eye className="w-5 h-5 text-teal-400" /> Product Details
             </h3>
             <div className="space-y-2 text-light-300">
               <p>
-                <strong className="text-light-100">SKU:</strong> {selected.sku}
+                <strong>Name:</strong> {selected.name}
               </p>
               <p>
-                <strong className="text-light-100">Name:</strong> {selected.name}
+                <strong>SKU:</strong> {selected.sku}
               </p>
               <p>
-                <strong className="text-light-100">Category:</strong>{" "}
-                {selected.category}
+                <strong>Category:</strong> {selected.category}
               </p>
               <p>
-                <strong className="text-light-100">Stock:</strong>{" "}
-                {selected.stock}
+                <strong>Stock:</strong> {selected.stock}
               </p>
               <p>
-                <strong className="text-light-100">Price:</strong> ₹{" "}
-                {selected.price.toLocaleString()}
+                <strong>Price:</strong> ₹{selected.price}
+              </p>
+              <p>
+                <strong>Description:</strong> {selected.description}
               </p>
             </div>
-            <div className="mt-6 flex flex-wrap justify-between gap-2">
+            <div className="flex justify-end gap-2 mt-4">
               <button
                 onClick={() => setSelected(null)}
-                className="px-3 py-1 bg-dark-700 hover:bg-dark-600 text-light-200 rounded-lg flex items-center gap-1"
+                className="px-3 py-1 rounded bg-dark-600 text-light-200"
               >
-                <X className="w-4 h-4" /> Close
+                <X size={16} />
               </button>
               <button
                 onClick={() => {
-                  setSelected(null);
-                  startEdit(selected);
+                  setIsEditing(true);
                 }}
-                className="px-3 py-1 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg flex items-center gap-1"
+                className="px-3 py-1 rounded bg-teal-500 text-white"
               >
-                <Edit className="w-4 h-4" /> Edit
+                <Edit size={16} /> Edit
               </button>
             </div>
           </div>
@@ -416,42 +441,77 @@ const ManufacturerInventory = () => {
 
       {/* Edit Modal */}
       {isEditing && selected && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 p-4">
-          <div className="bg-dark-800/90 border border-dark-700 backdrop-blur-lg rounded-2xl shadow-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-dark-800 rounded-xl p-6 w-full max-w-lg">
             <h3 className="text-lg font-semibold text-light-100 mb-3 flex items-center gap-2">
               <Edit className="w-5 h-5 text-emerald-400" /> Edit Product
             </h3>
-            <div className="space-y-3">
-              {["name", "sku", "category", "stock", "price"].map((field) => (
-                <input
-                  key={field}
-                  type={["stock", "price"].includes(field) ? "number" : "text"}
-                  value={selected[field]}
-                  onChange={(e) =>
-                    setSelected({
-                      ...selected,
-                      [field]: ["stock", "price"].includes(field)
-                        ? Number(e.target.value)
-                        : e.target.value,
-                    })
-                  }
-                  className="bg-dark-700/50 text-light-100 border border-dark-600 rounded-lg px-3 py-2 placeholder-light-500 focus:ring-2 focus:ring-teal-500 w-full"
-                />
-              ))}
-              <div className="flex flex-wrap justify-between mt-4 gap-2">
-                <button
-                  onClick={saveEdit}
-                  className="px-3 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg w-full sm:w-auto"
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-3 py-2 bg-dark-700 hover:bg-dark-600 text-light-200 rounded-lg w-full sm:w-auto"
-                >
-                  Cancel
-                </button>
+            <div className="grid gap-3">
+              <input
+                type="text"
+                value={selected.name}
+                onChange={(e) =>
+                  setSelected({ ...selected, name: e.target.value })
+                }
+                className="bg-dark-700 text-light-100 rounded px-3 py-2"
+              />
+              <input
+                type="text"
+                value={selected.sku}
+                onChange={(e) =>
+                  setSelected({ ...selected, sku: e.target.value })
+                }
+                className="bg-dark-700 text-light-100 rounded px-3 py-2"
+              />
+              <input
+                type="text"
+                value={selected.category}
+                onChange={(e) =>
+                  setSelected({ ...selected, category: e.target.value })
+                }
+                className="bg-dark-700 text-light-100 rounded px-3 py-2"
+              />
+              <textarea
+                value={selected.description}
+                onChange={(e) =>
+                  setSelected({ ...selected, description: e.target.value })
+                }
+                className="bg-dark-700 text-light-100 rounded px-3 py-2"
+              />
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handleImageUpload(e, "selected")}
+                className="text-sm text-light-400"
+              />
+              <div className="flex gap-2 flex-wrap">
+                {selected.images?.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img}
+                    alt="preview"
+                    className="w-16 h-16 object-cover rounded border"
+                  />
+                ))}
               </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={saveEdit}
+                className="px-3 py-1 rounded bg-emerald-500 text-white"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditing(false);
+                  setSelected(null);
+                }}
+                className="px-3 py-1 rounded bg-dark-600 text-light-200"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

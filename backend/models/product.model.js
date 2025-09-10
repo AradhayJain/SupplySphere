@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema({
     sellerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    
     name: { type: String, required: true },
     category: { type: String },
     description: { type: String },
@@ -16,6 +15,7 @@ const productSchema = new mongoose.Schema({
         price: Number
       }
     ],
+    role: { type: String, enum: ['Consumer', 'Manufacturer','Retailer', 'Logistics'], default: 'Consumer', required: true },
     stock: { type: Number, required: true },
     dynamicPricing: { type: Boolean, default: false },
     isExclusive: { 

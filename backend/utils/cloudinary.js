@@ -17,6 +17,7 @@ const uploadOnCloudinary = async (localFilePath) => {
 
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto", // Let Cloudinary detect the file type
+      folder: "supply_sphere", // Optional: specify a folder in your Cloudinary account
       use_filename: true,
       unique_filename: false
     });
@@ -34,24 +35,27 @@ const uploadOnCloudinary = async (localFilePath) => {
 
 // --- DELETE FUNCTION (Add this part) ---
 export const deleteFromCloudinary = async (cloudinaryUrl) => {
-    try {
-        if (!cloudinaryUrl) return null;
+  try {
+    if (!cloudinaryUrl) return null;
 
-        // Extract the public_id from the full URL
-        // Example URL: http://res.cloudinary.com/demo/image/upload/v1573729837/sample.jpg
-        // The public_id would be 'sample' (without the extension)
-        const publicId = cloudinaryUrl.split('/').pop().split('.')[0];
+    // Example Cloudinary URL:
+    // https://res.cloudinary.com/<cloud_name>/image/upload/v1698765432/supply_sphere/sample.jpg
 
-        // Use the destroy method to delete the asset
-        const result = await cloudinary.uploader.destroy(publicId);
-        
-        console.log("Cloudinary deletion result:", result);
-        return result;
+    // Extract the part after `/upload/` and remove version number & extension
+    const parts = cloudinaryUrl.split("/");
+    // Remove domain + upload + version
+    const publicIdWithExtension = parts.slice(parts.indexOf("upload") + 2).join("/");
+    const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, ""); // remove extension (.jpg, .png, etc.)
 
-    } catch (error) {
-        console.error("Error deleting from Cloudinary:", error);
-        return null;
-    }
+    // Now we have: supply_sphere/sample
+    const result = await cloudinary.uploader.destroy(publicId);
+
+    console.log("✅ Cloudinary deletion result:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Error deleting from Cloudinary:", error);
+    return null;
+  }
 };
 
 

@@ -1,12 +1,28 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import axios from "axios";
 
 const ManufacturerProfile = () => {
   const [profile, setProfile] = useState({
-    companyName: "Acme Manufacturing Ltd.",
-    email: "manufacturer@supply.com",
-    phone: "+91 9876543210",
-    address: "123 Industrial Park, Mumbai, India",
-  });
+  companyName: "Acme Manufacturing Ltd.",
+  email: "manufacturer@supply.com",
+  phone: "+91 9876543210",
+  address: "123 Industrial Park, Mumbai, India",
+});
+
+const { user , token } = useAuth();
+
+useEffect(() => {
+  if (user) {
+    setProfile((prev) => ({
+      ...prev,
+      companyName: user.CompanyName || prev.companyName,
+      email: user.email || prev.email,
+      phone: user.PhoneNumber || prev.phone,
+      // you can also add address if user has it
+    }));
+  }
+}, [user]);
 
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState(profile);
@@ -25,14 +41,38 @@ const ManufacturerProfile = () => {
     setEditMode(false);
   };
 
-  const handlePasswordChange = () => {
-    if (passwordData.new !== passwordData.confirm) {
-      alert("New passwords do not match");
-      return;
+  const handlePasswordChange = async () => {
+  if (passwordData.new !== passwordData.confirm) {
+    alert("New passwords do not match");
+    return;
+  }
+
+  try {
+    const response = await axios.put(
+  "http://localhost:3000/api/user/change-password",
+  {
+    oldPassword: passwordData.current,  // ✅ matches backend
+    newPassword: passwordData.new
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+    if(response.data){
+      alert("Password changed successfully");
+      setPasswordData({ current: "", new: "", confirm: "" });
+      console.log("Password change response:", response.data);
     }
-    alert("Password updated successfully (mock)");
-    setPasswordData({ current: "", new: "", confirm: "" });
-  };
+    
+  } catch (error) {
+    console.error("Password change error:", error);
+    alert("Failed to change password");
+    
+  }
+};
+
 
   return (
     <div className="space-y-8">
