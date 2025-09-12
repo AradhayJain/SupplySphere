@@ -28,7 +28,7 @@ const ManufacturerDashboard = ({ previewMode = false }) => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/orders/my-orders", {
+        const res = await fetch("http://localhost:3000/api/orders/myorders", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

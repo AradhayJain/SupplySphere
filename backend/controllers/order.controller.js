@@ -7,12 +7,13 @@ import { Product } from "../models/product.model.js"; // Product model might be 
 // @route   POST /api/orders
 // @access  Private
 export const createOrder = asyncHandler(async (req, res) => {
-  const { products, totalAmount, discountApplied, paymentMethod, deliveryMethod } = req.body;
+  const { address,products, totalAmount, discountApplied, paymentMethod, deliveryMethod } = req.body;
 
   if (!products || products.length === 0) {
     res.status(400);
     throw new Error("No products in order");
   }
+  
 
   // Assuming all products in one order come from the same seller for simplicity
   // A more complex system might group items by seller in the cart itself
@@ -37,11 +38,8 @@ export const createOrder = asyncHandler(async (req, res) => {
   
   // Optional: Clear user's cart after order creation
   const user = await User.findById(req.user._id);
-    if (user) {
-        user.cart = [];
-        await user.save();
-    }
-  
+  user.Address = address || user.Address; // Update address if provided
+  await user.save();
   res.status(201).json(createdOrder);
 });
 
@@ -49,7 +47,8 @@ export const createOrder = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/myorders
 // @access  Private
 export const getMyOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ buyerId: req.user._id }).populate("products.productId", "name price");
+  const orders = await Order.find({ sellerId: req.user._id }).populate("products.productId", "name price");
+  console.log(orders)
   res.json(orders);
 });
 
