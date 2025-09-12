@@ -7,7 +7,7 @@ import {
   updatePaymentStatus,
   getAllOrders,
   getSellerOrders
-} from "../controllers/order.controller.js";
+} from "../controllers/retailOrder.controller.js";
 import { protect } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();

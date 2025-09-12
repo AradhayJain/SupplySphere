@@ -1,6 +1,6 @@
 import { RetailMarket } from "../models/retailMarket.model.js";
 import asyncHandler from 'express-async-handler';
-import { Product } from "../models/product.model.js";
+import RetailerProduct from "../models/retailProducts.mode.js";
 
 export const createRetailMarket = asyncHandler(async (req, res) => {
     const { name, location,description } = req.body;
@@ -27,51 +27,41 @@ export const getRetailMarkets = asyncHandler(async (req, res) => {
 // @access  Private (Retailer)
 export const addProductRetailer = asyncHandler(async (req, res) => {
   try {
-    const { name, category, description, price, minOrderQty, pricingTiers, stock, isExclusive } = req.body;
-    
-    const sellerId = req.user._id; // Assume req.user is set by auth middleware
+    const { marketId, name, category, description, purchasePrice, sellingPrice, stock, visibility } = req.body;
+    const retailerId = req.user._id; // set by auth middleware
 
-    if (!sellerId || !name || !price || !stock) {
+    // ✅ Validate required fields
+    if (!retailerId || !marketId || !name || !purchasePrice || !sellingPrice || !stock) {
       res.status(400);
-      throw new Error("Seller ID, name, price, and stock are required.");
+      throw new Error("Retailer ID, marketId, name, purchasePrice, sellingPrice, and stock are required.");
     }
 
-    // Handle image upload
+    // ✅ Handle image upload
     let imageUrls = [];
     if (req.file) {
       const result = await uploadOnCloudinary(req.file.path);
       if (result) imageUrls.push(result.secure_url);
     }
 
-    // Parse pricingTiers if sent as JSON string
-    let parsedPricingTiers = [];
-    if (pricingTiers) {
-      try {
-        parsedPricingTiers = JSON.parse(pricingTiers);
-      } catch (err) {
-        console.warn("⚠️ Invalid JSON for pricingTiers:", pricingTiers);
-        parsedPricingTiers = [];
-      }
-    }
-
-    const product = new Product({
-      sellerId,
+    // ✅ Create product
+    const product = new RetailerProduct({
+      retailerId,
+      marketId,
       name,
       category,
       description,
-      images: imageUrls,
-      price,
-      minOrderQty: minOrderQty || 1,
-      pricingTiers: parsedPricingTiers,
+      purchasePrice,
+      sellingPrice,
       stock,
-      isExclusive: isExclusive === "true" || isExclusive === true,
+      visibility: visibility === "false" ? false : true, // ensure boolean
+      images: imageUrls,
     });
 
     const createdProduct = await product.save();
 
     res.status(201).json({
       success: true,
-      message: "✅ Product created successfully",
+      message: "✅ Retailer product created successfully",
       product: createdProduct,
     });
   } catch (error) {
@@ -80,4 +70,26 @@ export const addProductRetailer = asyncHandler(async (req, res) => {
   }
 });
 
+export const getRetailerProducts = asyncHandler(async (req, res) => {
+    const retailerId = req.user._id; // set by auth middleware
+    const products = await RetailerProduct.find({ retailerId }).populate('marketId', 'name location');
+    res.json(products);
+});
 
+export const getProductsByMarket = asyncHandler(async (req, res) => {
+  try {
+    const { marketId } = req.query;
+
+    if (!marketId) {
+      res.status(400);
+      throw new Error("Market ID is required.");
+    }
+
+    const products = await RetailerProduct.find({ marketId }).populate("retailerId", "companyName email");
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error("Get Products by Market error:", error);
+    res.status(500).json({ success: false, message: "Error fetching products" });
+  }
+});

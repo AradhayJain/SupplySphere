@@ -14,10 +14,10 @@ const RetailerCreateMarket = () => {
     name: "",
     category: "",
     description: "",
-    price: "",
-    minOrderQty: 1,
+    purchasePrice: "",
+    sellingPrice: "",
     stock: "",
-    isExclusive: false,
+    visibility: true,
   });
 
   const [loading, setLoading] = useState(false);
@@ -38,7 +38,7 @@ const RetailerCreateMarket = () => {
       }
     };
     fetchMarkets();
-  }, []);
+  }, [token]);
 
   // Create market
   const handleChange = (e) => {
@@ -77,13 +77,13 @@ const RetailerCreateMarket = () => {
     }
   };
 
-  // Open market detail
+  // Open market detail + fetch products
   const openMarket = async (market) => {
     setSelectedMarket(market);
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/products?marketId=${market._id}`,
+        `http://localhost:3000/api/retail/products?marketId=${market._id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -103,10 +103,10 @@ const RetailerCreateMarket = () => {
       name: "",
       category: "",
       description: "",
-      price: "",
-      minOrderQty: 1,
+      purchasePrice: "",
+      sellingPrice: "",
       stock: "",
-      isExclusive: false,
+      visibility: true,
     });
   };
 
@@ -119,10 +119,11 @@ const RetailerCreateMarket = () => {
     });
   };
 
+  // Submit product
   const handleProductSubmit = async (e) => {
     e.preventDefault();
-    if (!productForm.name || !productForm.price || !productForm.stock) {
-      setError("Name, price, and stock are required.");
+    if (!productForm.name || !productForm.sellingPrice || !productForm.stock) {
+      setError("Name, selling price, and stock are required.");
       return;
     }
 
@@ -130,12 +131,11 @@ const RetailerCreateMarket = () => {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:3000/api/products/retailer/add", {
+      const res = await fetch("http://localhost:3000/api/retail/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           ...productForm,
           marketId: selectedMarket._id,
@@ -145,15 +145,15 @@ const RetailerCreateMarket = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to add product");
 
-      setProducts([...products, data]);
+      setProducts([...products, data.product]); // use product from backend
       setProductForm({
         name: "",
         category: "",
         description: "",
-        price: "",
-        minOrderQty: 1,
+        purchasePrice: "",
+        sellingPrice: "",
         stock: "",
-        isExclusive: false,
+        visibility: true,
       });
     } catch (err) {
       setError(err.message);
@@ -192,13 +192,14 @@ const RetailerCreateMarket = () => {
         >
           {error && <p className="text-red-500">{error}</p>}
           <h3 className="text-lg font-bold text-light-100">Add Product</h3>
+
           <input
             type="text"
             name="name"
             placeholder="Product name"
             value={productForm.name}
             onChange={handleProductChange}
-            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
           />
           <input
             type="text"
@@ -206,30 +207,30 @@ const RetailerCreateMarket = () => {
             placeholder="Category"
             value={productForm.category}
             onChange={handleProductChange}
-            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
           />
           <textarea
             name="description"
             placeholder="Description"
             value={productForm.description}
             onChange={handleProductChange}
-            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
           />
           <input
             type="number"
-            name="price"
-            placeholder="Price"
-            value={productForm.price}
+            name="purchasePrice"
+            placeholder="Purchase Price"
+            value={productForm.purchasePrice}
             onChange={handleProductChange}
-            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
           />
           <input
             type="number"
-            name="minOrderQty"
-            placeholder="Min Order Quantity"
-            value={productForm.minOrderQty}
+            name="sellingPrice"
+            placeholder="Selling Price"
+            value={productForm.sellingPrice}
             onChange={handleProductChange}
-            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
           />
           <input
             type="number"
@@ -237,21 +238,23 @@ const RetailerCreateMarket = () => {
             placeholder="Stock"
             value={productForm.stock}
             onChange={handleProductChange}
-            className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
           />
+
           <label className="flex items-center space-x-2 text-light-100">
             <input
               type="checkbox"
-              name="isExclusive"
-              checked={productForm.isExclusive}
+              name="visibility"
+              checked={productForm.visibility}
               onChange={handleProductChange}
             />
-            Exclusive Product
+            Visible in Store
           </label>
+
           <button
             type="submit"
             disabled={loading}
-            className="bg-primary text-white px-4 py-2 rounded-md"
+            className="bg-primary text-black px-4 py-2 rounded-md"
           >
             {loading ? "Adding..." : "Add Product"}
           </button>
@@ -259,19 +262,28 @@ const RetailerCreateMarket = () => {
 
         {/* Product List */}
         <div className="space-y-3">
-          {/* {products.map((p) => (
-            <div
-              key={p._id || p.id}
-              className="bg-dark-900 border border-dark-600 p-4 rounded-md"
-            >
-              <h4 className="text-light-100 font-semibold">{p.name}</h4>
-              <p className="text-light-400">{p.category}</p>
-              <p className="text-light-500">{p.description}</p>
-              <p className="text-light-300">
-                Price: ₹{p.price} | Stock: {p.stock}
-              </p>
-            </div>
-          ))} */}
+          {products.length === 0 ? (
+            <p className="text-light-400">No products added yet.</p>
+          ) : (
+            products.map((p) => (
+              <div
+                key={p._id || p.id}
+                className="bg-dark-900 border border-dark-600 p-4 rounded-md"
+              >
+                <h4 className="text-light-100 font-semibold">{p.name}</h4>
+                <p className="text-light-400">{p.category}</p>
+                <p className="text-light-500">{p.description}</p>
+                <p className="text-light-300">
+                  Purchase Price: ₹{p.purchasePrice} | Selling Price: ₹
+                  {p.sellingPrice}
+                </p>
+                <p className="text-light-300">Stock: {p.stock}</p>
+                <p className="text-light-400">
+                  Status: {p.status} | Visible: {p.visibility ? "Yes" : "No"}
+                </p>
+              </div>
+            ))
+          )}
         </div>
       </div>
     );
@@ -286,14 +298,14 @@ const RetailerCreateMarket = () => {
         className="bg-dark-800 border border-dark-700 p-6 rounded-xl shadow-card space-y-4"
       >
         {error && <p className="text-red-500 text-sm">{error}</p>}
-        <h2 className="text-xl font-bold text-light-100">Create Market</h2>
+        <h2 className="text-xl font-bold text-black">Create Market</h2>
         <input
           type="text"
           name="name"
           value={form.name}
           onChange={handleChange}
           placeholder="Market Name"
-          className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+          className="w-full px-3 py-2 rounded-md bg-dark-900 text-black"
         />
         <input
           type="text"
@@ -301,14 +313,14 @@ const RetailerCreateMarket = () => {
           value={form.location}
           onChange={handleChange}
           placeholder="Location"
-          className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+          className="w-full px-3 py-2 rounded-md bg-dark-900 text-black"
         />
         <textarea
           name="description"
           value={form.description}
           onChange={handleChange}
           placeholder="Description"
-          className="w-full px-3 py-2 rounded-md bg-dark-900 text-light-100"
+          className="w-full px-3 py-2 rounded-md bg-dark-900 text-black"
         />
         <button
           type="submit"
@@ -321,7 +333,7 @@ const RetailerCreateMarket = () => {
 
       {/* Markets List */}
       <div className="space-y-3">
-        <h2 className="text-xl font-bold text-light-100">Your Markets</h2>
+        <h2 className="text-xl font-bold text-black">Your Markets</h2>
         {markets.length === 0 ? (
           <p className="text-light-400">No markets created yet.</p>
         ) : (

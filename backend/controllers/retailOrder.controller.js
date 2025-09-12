@@ -1,13 +1,14 @@
 import asyncHandler from "express-async-handler";
 import { Order } from "../models/order.model.js";
 import {User} from "../models/user.model.js"; 
-import { Product } from "../models/product.model.js"; // Product model might be needed for inventory updates etc.
+import { RetailOrder } from "../models/retailOrders.model.js"; 
+import RetailerProduct from "../models/retailProducts.mode.js";// Product model might be needed for inventory updates etc.
 
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
 export const createOrder = asyncHandler(async (req, res) => {
-  const { products, totalAmount, discountApplied, paymentMethod, deliveryMethod } = req.body;
+  const { bD,products, totalAmount, discountApplied, paymentMethod, deliveryMethod } = req.body;
 
   if (!products || products.length === 0) {
     res.status(400);
@@ -16,15 +17,17 @@ export const createOrder = asyncHandler(async (req, res) => {
 
   // Assuming all products in one order come from the same seller for simplicity
   // A more complex system might group items by seller in the cart itself
-  const productRecord = await Product.findById(products[0].productId);
+  const productRecord = await RetailerProduct.findById(products[0].productId);
+
   if (!productRecord) {
       res.status(404);
       throw new Error(`Product with ID ${products[0].productId} not found`);
   }
-  const sellerId = productRecord.sellerId; // Assuming sellerId is a field in your Product model
+  const sellerId = productRecord.retailerId; // Assuming sellerId is a field in your Product model
+  console.log(sellerId)
 
-  const order = new Order({
-    buyerId: req.user._id,
+  const order = new RetailOrder({
+    buyerId: bD,
     sellerId: sellerId,
     products,
     totalAmount,
@@ -36,11 +39,7 @@ export const createOrder = asyncHandler(async (req, res) => {
   const createdOrder = await order.save();
   
   // Optional: Clear user's cart after order creation
-  const user = await User.findById(req.user._id);
-    if (user) {
-        user.cart = [];
-        await user.save();
-    }
+  
   
   res.status(201).json(createdOrder);
 });
@@ -49,7 +48,7 @@ export const createOrder = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/myorders
 // @access  Private
 export const getMyOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ buyerId: req.user._id }).populate("products.productId", "name price");
+  const orders = await RetailOrder.find({ buyerId: req.user._id }).populate("products.productId", "name price");
   res.json(orders);
 });
 
@@ -57,7 +56,7 @@ export const getMyOrders = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/:id
 // @access  Private
 export const getOrderById = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id)
+  const order = await RetailOrder.findById(req.params.id)
     .populate("buyerId", "name email")
     .populate("products.productId", "name price");
 
@@ -74,7 +73,7 @@ export const getOrderById = asyncHandler(async (req, res) => {
 // @access  Private (seller/admin)
 export const updateOrderStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
-  const order = await Order.findById(req.params.id);
+  const order = await RetailOrder.findById(req.params.id);
 
   if (!order) {
     res.status(404);
@@ -97,7 +96,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 // @access  Private
 export const updatePaymentStatus = asyncHandler(async (req, res) => {
   const { paymentStatus } = req.body;
-  const order = await Order.findById(req.params.id);
+  const order = await RetailOrder.findById(req.params.id);
 
   if (!order) {
     res.status(404);
@@ -125,7 +124,7 @@ export const getAllOrders = asyncHandler(async (req, res) => {
     //     res.status(401);
     //     throw new Error("Not authorized as an admin");
     // }
-  const orders = await Order.find()
+  const orders = await RetailOrder.find()
     .populate("buyerId", "name email")
     .populate("sellerId", "name email");
   res.json(orders);
@@ -135,7 +134,7 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/seller
 // @access  Private (seller/retailer/manufacturer)
 export const getSellerOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ sellerId: req.user._id })
+  const orders = await RetailOrder.find({ sellerId: req.user._id })
     .populate("buyerId", "name email")
     .populate("products.productId", "name category price");
 
