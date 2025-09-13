@@ -1,18 +1,23 @@
-// src/dashboards/ConsumerDashboard.jsx
 import React from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useCart } from "../contexts/CartContext";
 import ConsumerHome from "./consumer/ConsumerHome";
 import { ShoppingCart, Package, LifeBuoy, User, Home } from "lucide-react";
 import StatCard from "../components/dashboard/StatCard";
 
 const ConsumerDashboard = ({ previewMode = false }) => {
   const { user } = useAuth();
+  const { itemCount } = useCart();
   const location = useLocation();
 
   const sidebarLinks = [
     { name: "Home", path: "home", icon: Home },
-    { name: "Cart", path: "cart", icon: ShoppingCart },
+    {
+      name: `Cart ${itemCount > 0 ? `(${itemCount})` : ""}`,
+      path: "cart",
+      icon: ShoppingCart,
+    },
     { name: "Order History", path: "order-history", icon: Package },
     { name: "Support", path: "support", icon: LifeBuoy },
     { name: "Profile", path: "profile", icon: User },
@@ -84,9 +89,9 @@ const ConsumerDashboard = ({ previewMode = false }) => {
           />
           <StatCard
             title="Cart Items"
-            value="3"
+            value={itemCount}
             icon={ShoppingCart}
-            change="Updated today"
+            change="Updated live"
           />
           <StatCard
             title="Support Tickets"

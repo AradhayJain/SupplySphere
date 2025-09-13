@@ -139,8 +139,8 @@ const LandingPage = () => {
 
   // --- UPDATED TEAM SECTION ---
   const teamMembers = [
-    { name: 'Aradhay Jain', role: 'Co-Founder', description: 'B.Tech SE @ DTU', image: 'https://placehold.co/200x200/E4E4E7/18181B?text=AJ', social: 'https://linkedin.com' },
-    { name: 'Aniruddha Majumdar', role: 'Co-Founder', description: 'B.Tech SE @ DTU', image: 'https://placehold.co/200x200/E4E4E7/18181B?text=AM', social: 'https://linkedin.com' },
+    { name: 'Aradhay Jain', role: 'Co-Founder', description: 'B.Tech SE @ DTU', image: 'https://placehold.co/200x200/E4E4E7/18181B?text=AJ', social: 'https://www.linkedin.com/in/aradhayjain2006/' },
+    { name: 'Aniruddha Majumdar', role: 'Co-Founder', description: 'B.Tech SE @ DTU', image: 'https://placehold.co/200x200/E4E4E7/18181B?text=AM', social: 'https://www.linkedin.com/in/aniruddha-majumdar15/' },
   ];
   
   const testimonials = [
