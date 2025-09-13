@@ -33,7 +33,7 @@ const ProductCard = ({ product, onBuyNow,boughtPro }) => {
   <div className="bg-dark-700/70 border border-dark-600 p-5 rounded-2xl shadow-md hover:shadow-primary/20 hover:border-primary transition-all duration-300 flex flex-col group">
     <div className="w-full h-44 mb-4 rounded-lg overflow-hidden">
       <img
-        src={product.images && product.images.length > 0 ? product.images[0] : "https://via.placeholder.com/300"}
+        src={product.images && product.images.length > 0 ? product.images : "https://via.placeholder.com/300"}
         alt={product.name}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
       />

@@ -40,7 +40,7 @@ export const addProductRetailer = asyncHandler(async (req, res) => {
     const retailerId = req.user._id; // set by auth middleware
 
     // ✅ Validate required fields
-    if (!retailerId || !marketId || !name || !purchasePrice || !sellingPrice || !stock) {
+    if (!marketId || !name || !purchasePrice || !sellingPrice || !stock) {
       res.status(400);
       throw new Error("Retailer ID, marketId, name, purchasePrice, sellingPrice, and stock are required.");
     }

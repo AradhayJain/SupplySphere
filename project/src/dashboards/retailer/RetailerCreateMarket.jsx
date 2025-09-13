@@ -144,6 +144,7 @@ const handleSubmit = async (e) => {
         name: selected.name,
         category: selected.category,
         description: selected.description,
+        purchasePrice:selected.purchasePrice
       });
     } else {
       setProductForm({
@@ -151,8 +152,9 @@ const handleSubmit = async (e) => {
         name: "",
         category: "",
         description: "",
-        sellingPrice: "",
+        sellingPrice: 100,
         stock: "",
+        purchasePrice: 100,
         visibility: true,
       });
     }
@@ -207,6 +209,7 @@ const handleSubmit = async (e) => {
           Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           ...productForm,
+          purchasePrice:1,
           marketId: selectedMarket._id,
         }),
       });
@@ -300,6 +303,14 @@ const handleSubmit = async (e) => {
           />
 
           {/* Retailer-specific fields */}
+          <input
+            type="number"
+            name="purchasePrice"
+            placeholder="Purchase Price"
+            value={productForm.purchasePrice}
+            readOnly
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
+          />
           <input
             type="number"
             name="sellingPrice"

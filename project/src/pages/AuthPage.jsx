@@ -193,7 +193,7 @@ export default function AuthPage({ type = "login" }) {
               and predictive insights.
             </p>
             <img
-              src="/assets/supply-network.svg"
+              src="https://sourcingjournal.com/wp-content/uploads/2019/07/SU-Supply-Network.jpg"
               alt="Supply chain network"
               className="w-80 mx-auto drop-shadow-lg"
             />
