@@ -1,4 +1,3 @@
-// src/App.jsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 
@@ -45,74 +44,96 @@ import LogisticsFleet from "./dashboards/logistics/LogisticsFleet";
 import LogisticsTracking from "./dashboards/logistics/LogisticsTracking";
 import LogisticsProfile from "./dashboards/logistics/LogisticsProfile";
 
-//providers
-import {ThemeProvider} from "./contexts/ThemeContext";
+// providers
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { CartProvider } from "./contexts/CartContext";
 
 function App() {
   return (
-
     <AuthProvider>
       <ThemeProvider>
-      <Router>
-        <Routes>
-          {/* --- PUBLIC ROUTES --- */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/auth/login" element={<HandleLogin><AuthPage type="login" /></HandleLogin>} />
-          <Route path="/auth/signup" element={<HandleLogin><AuthPage type="signup" /></HandleLogin>} />
+        <CartProvider>
+          <Router>
+            <Routes>
+              {/* --- PUBLIC ROUTES --- */}
+              <Route path="/" element={<LandingPage />} />
+              <Route
+                path="/auth/login"
+                element={
+                  <HandleLogin>
+                    <AuthPage type="login" />
+                  </HandleLogin>
+                }
+              />
+              <Route
+                path="/auth/signup"
+                element={
+                  <HandleLogin>
+                    <AuthPage type="signup" />
+                  </HandleLogin>
+                }
+              />
 
-          {/* --- PROTECTED DASHBOARD ROUTES --- */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Outlet />
-              </ProtectedRoute>
-            }
-          >
-            {/* Manufacturer dashboard */}
-            <Route path="manufacturer" element={<ManufacturerDashboard />}>
-              <Route index element={<ManufacturerHome />} />
-              <Route path="home" element={<ManufacturerHome />} />
-              <Route path="inventory" element={<ManufacturerInventory />} />
-              <Route path="sales-history" element={<ManufacturerSalesHistory />} />
-              <Route path="profile" element={<ManufacturerProfile />} />
-            </Route>
+              {/* --- PROTECTED DASHBOARD ROUTES --- */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Outlet />
+                  </ProtectedRoute>
+                }
+              >
+                {/* Manufacturer dashboard */}
+                <Route path="manufacturer" element={<ManufacturerDashboard />}>
+                  <Route index element={<ManufacturerHome />} />
+                  <Route path="home" element={<ManufacturerHome />} />
+                  <Route path="inventory" element={<ManufacturerInventory />} />
+                  <Route
+                    path="sales-history"
+                    element={<ManufacturerSalesHistory />}
+                  />
+                  <Route path="profile" element={<ManufacturerProfile />} />
+                </Route>
 
-            {/* Retailer dashboard */}
-            <Route path="retailer" element={<RetailerDashboard />}>
-              <Route index element={<RetailerHome />} />
-              <Route path="home" element={<RetailerHome />} />
-              <Route path="order-history" element={<RetailerOrderHistory />} />
-              <Route path="create-market" element={<RetailerCreateMarket />} />
-              <Route path="sales-history" element={<RetailerSalesHistory />} />
-              <Route path="profile" element={<RetailerProfile />} />
-            </Route>
+                {/* Retailer dashboard */}
+                <Route path="retailer" element={<RetailerDashboard />}>
+                  <Route index element={<RetailerHome />} />
+                  <Route path="home" element={<RetailerHome />} />
+                  <Route path="order-history" element={<RetailerOrderHistory />} />
+                  <Route path="create-market" element={<RetailerCreateMarket />} />
+                  <Route path="sales-history" element={<RetailerSalesHistory />} />
+                  <Route path="profile" element={<RetailerProfile />} />
+                </Route>
 
-            {/* Consumer dashboard */}
-            <Route path="consumer" element={<ConsumerDashboard />}>
-              <Route index element={<ConsumerHome />} />
-              <Route path="home" element={<ConsumerHome />} />
-              <Route path="cart" element={<ConsumerCart />} />
-              <Route path="order-history" element={<ConsumerOrderHistory />} />
-              <Route path="support" element={<ConsumerSupport />} />
-              <Route path="profile" element={<ConsumerProfile />} />
-            </Route>
+                {/* Consumer dashboard */}
+                <Route path="consumer" element={<ConsumerDashboard />}>
+                  <Route index element={<ConsumerHome />} />
+                  <Route path="home" element={<ConsumerHome />} />
+                  <Route path="cart" element={<ConsumerCart />} />
+                  <Route
+                    path="order-history"
+                    element={<ConsumerOrderHistory />}
+                  />
+                  <Route path="support" element={<ConsumerSupport />} />
+                  <Route path="profile" element={<ConsumerProfile />} />
+                </Route>
 
-            {/* Logistics dashboard */}
-            <Route path="logistics" element={<LogisticsDashboard />}>
-              <Route index element={<LogisticsHome />} />
-              <Route path="home" element={<LogisticsHome />} />
-              <Route path="shipments" element={<LogisticsShipments />} />
-              <Route path="fleet" element={<LogisticsFleet />} />
-              <Route path="tracking" element={<LogisticsTracking />} />
-              <Route path="profile" element={<LogisticsProfile />} />
-            </Route>
-          </Route>
+                {/* Logistics dashboard */}
+                <Route path="logistics" element={<LogisticsDashboard />}>
+                  <Route index element={<LogisticsHome />} />
+                  <Route path="home" element={<LogisticsHome />} />
+                  <Route path="shipments" element={<LogisticsShipments />} />
+                  <Route path="fleet" element={<LogisticsFleet />} />
+                  <Route path="tracking" element={<LogisticsTracking />} />
+                  <Route path="profile" element={<LogisticsProfile />} />
+                </Route>
+              </Route>
 
-          {/* --- DEVELOPMENT ROUTES --- */}
-          <Route path="/dev/:role" element={<DevDashboardRouter />} />
-        </Routes>
-      </Router>
+              {/* --- DEVELOPMENT ROUTES --- */}
+              <Route path="/dev/:role" element={<DevDashboardRouter />} />
+            </Routes>
+          </Router>
+        </CartProvider>
       </ThemeProvider>
     </AuthProvider>
   );
