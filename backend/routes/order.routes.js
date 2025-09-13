@@ -9,10 +9,12 @@ import {
   getSellerOrders
 } from "../controllers/order.controller.js";
 import { protect } from "../middlewares/authMiddleware.js";
+import { getManProductsById } from "../controllers/product.controller.js";
 
 const router = express.Router();
 
 router.get("/retailer",protect,getSellerOrders)
+router.get("/manufacturer",protect,getManProductsById)
 router.route("/myorders").get(protect, getMyOrders);  // Get logged-in user's orders
 router.route("/get",protect,getAllOrders)
 router.route("/").post(protect, createOrder);         // Create order
@@ -20,6 +22,7 @@ router.route("/").post(protect, createOrder);         // Create order
 router.route("/:id").get(protect, getOrderById);      // Get single order
 router.route("/:id/status").put(protect, updateOrderStatus);  // Update order status
 router.route("/:id/pay").put(protect, updatePaymentStatus);
+
 
 
 

@@ -1,81 +1,94 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import axios from "axios";
 
 const RetailerCreateMarket = () => {
   const [form, setForm] = useState({
+    marketId:"",
     name: "",
     location: "",
     description: "",
   });
-  const [markets, setMarkets] = useState([]);
-  const [selectedMarket, setSelectedMarket] = useState(null); // market detail view
+  
+  const [selectedMarket, setSelectedMarket] = useState(null);
+
+  // Bought products for retailer
   const [products, setProducts] = useState([]);
+  const [marketProducts, setMarketProducts] = useState([]);
+  const {allMarkets,markets,setMarkets} = useAuth();
+
   const [productForm, setProductForm] = useState({
+    productId: "",
     name: "",
     category: "",
     description: "",
-    purchasePrice: "",
     sellingPrice: "",
     stock: "",
     visibility: true,
   });
 
+  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { token } = useAuth();
 
+  //fetch all markets
+
+
   // Fetch markets on mount
-  useEffect(() => {
-    const fetchMarkets = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/api/retail", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (res.ok) setMarkets(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchMarkets();
-  }, [token]);
+ 
 
   // Create market
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.name || !form.location) {
-      setError("Market name and location are required.");
-      return;
-    }
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!form.name || !form.location) {
+    setError("Market name and location are required.");
+    return;
+  }
 
-    setLoading(true);
-    setError("");
+  // ✅ check if market already exists
+  const exists = markets.some((m) => m.name.toLowerCase() === form.name.toLowerCase());
+  if (exists) {
+    window.alert("Market Already Exists");
+    return;
+  }
 
-    try {
-      const res = await fetch("http://localhost:3000/api/retail", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      });
+  setLoading(true);
+  setError("");
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to create market");
+  try {
+    const final = {
+      name: form.name.trim(),
+      location: form.location.trim(),
+      description: form.description.trim(),
+    };
 
-      setMarkets([...markets, data]); // add new market
-      setForm({ name: "", location: "", description: "" });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const res = await fetch("http://localhost:3000/api/retail", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(final),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to create market");
+
+    setMarkets([...markets, data]);
+    setForm({ name: "", location: "", description: "" });
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Open market detail + fetch products
   const openMarket = async (market) => {
@@ -89,7 +102,15 @@ const RetailerCreateMarket = () => {
         }
       );
       const data = await res.json();
-      if (res.ok) setProducts(data);
+      if (res.ok) setMarketProducts(data);
+
+      // fetch bought products for retailer
+      const boughtRes = await fetch(
+        "http://localhost:3000/api/retail/products/bought",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const boughtData = await boughtRes.json();
+      if (boughtRes.ok) setProducts(boughtData);
     } catch (err) {
       console.error(err);
     }
@@ -99,18 +120,45 @@ const RetailerCreateMarket = () => {
   const goBack = () => {
     setSelectedMarket(null);
     setProducts([]);
+    setMarketProducts([]);
     setProductForm({
+      productId: "",
       name: "",
       category: "",
       description: "",
-      purchasePrice: "",
       sellingPrice: "",
       stock: "",
       visibility: true,
     });
   };
 
-  // Handle product form
+  // Handle product dropdown select
+  const handleProductSelect = (e) => {
+    const productId = e.target.value;
+    const selected = products.find((p) => p.orderId === productId);
+    console.log(selected)
+    if (selected) {
+      setProductForm({
+        ...productForm,
+        productId: selected.orderId,
+        name: selected.name,
+        category: selected.category,
+        description: selected.description,
+      });
+    } else {
+      setProductForm({
+        productId: "",
+        name: "",
+        category: "",
+        description: "",
+        sellingPrice: "",
+        stock: "",
+        visibility: true,
+      });
+    }
+  };
+
+  // Handle product form changes (sellingPrice, stock, visibility)
   const handleProductChange = (e) => {
     const { name, value, type, checked } = e.target;
     setProductForm({
@@ -118,12 +166,33 @@ const RetailerCreateMarket = () => {
       [name]: type === "checkbox" ? checked : value,
     });
   };
+  const handleMarketChange = (e) => {
+    const marketId = e.target.value;
+    const selected = allMarkets.find((p) => p._id === marketId);
+    console.log(selected)
+    if (selected) {
+      setForm({
+        ...form,
+        marketId: selected._id,
+        name: selected.name,
+        location: selected.location,
+        description: selected.description,
+      });
+    } else {
+      setForm({
+        marketId:"",
+        name: "",
+        location: "",
+        description: ""
+      });
+    }
+  };
 
-  // Submit product
+  // Submit product to market
   const handleProductSubmit = async (e) => {
     e.preventDefault();
-    if (!productForm.name || !productForm.sellingPrice || !productForm.stock) {
-      setError("Name, selling price, and stock are required.");
+    if (!productForm.productId || !productForm.sellingPrice || !productForm.stock) {
+      setError("Product, selling price, and stock are required.");
       return;
     }
 
@@ -145,12 +214,12 @@ const RetailerCreateMarket = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to add product");
 
-      setProducts([...products, data.product]); // use product from backend
+      setMarketProducts([...marketProducts, data.product]);
       setProductForm({
+        productId: "",
         name: "",
         category: "",
         description: "",
-        purchasePrice: "",
         sellingPrice: "",
         stock: "",
         visibility: true,
@@ -162,7 +231,7 @@ const RetailerCreateMarket = () => {
     }
   };
 
-  // Market detail view
+  // ---------------- Market Detail View ----------------
   if (selectedMarket) {
     return (
       <div className="space-y-6">
@@ -185,7 +254,7 @@ const RetailerCreateMarket = () => {
           </p>
         </div>
 
-        {/* Product Form */}
+        {/* Add Product Form */}
         <form
           onSubmit={handleProductSubmit}
           className="bg-dark-800 border border-dark-700 p-6 rounded-xl shadow-card space-y-4"
@@ -193,37 +262,44 @@ const RetailerCreateMarket = () => {
           {error && <p className="text-red-500">{error}</p>}
           <h3 className="text-lg font-bold text-light-100">Add Product</h3>
 
+          {/* Dropdown of bought products */}
+          <select
+            name="productId"
+            onChange={handleProductSelect}
+            value={productForm.productId || ""}
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black"
+          >
+            <option value="">-- Select from Bought Products --</option>
+            {products.map((bp) => (
+              <option key={bp.orderId} value={bp.orderId}>
+                {bp.name} ({bp.category})
+              </option>
+            ))}
+          </select>
+
+          {/* Auto-filled manufacturer fields */}
           <input
             type="text"
             name="name"
-            placeholder="Product name"
             value={productForm.name}
-            onChange={handleProductChange}
-            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
+            readOnly
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-gray-400"
           />
           <input
             type="text"
             name="category"
-            placeholder="Category"
             value={productForm.category}
-            onChange={handleProductChange}
-            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
+            readOnly
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-gray-400"
           />
           <textarea
             name="description"
-            placeholder="Description"
             value={productForm.description}
-            onChange={handleProductChange}
-            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
+            readOnly
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-gray-400"
           />
-          <input
-            type="number"
-            name="purchasePrice"
-            placeholder="Purchase Price"
-            value={productForm.purchasePrice}
-            onChange={handleProductChange}
-            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black placeholder-gray-400"
-          />
+
+          {/* Retailer-specific fields */}
           <input
             type="number"
             name="sellingPrice"
@@ -262,10 +338,10 @@ const RetailerCreateMarket = () => {
 
         {/* Product List */}
         <div className="space-y-3">
-          {products.length === 0 ? (
+          {marketProducts.length === 0 ? (
             <p className="text-light-400">No products added yet.</p>
           ) : (
-            products.map((p) => (
+            marketProducts.map((p) => (
               <div
                 key={p._id || p.id}
                 className="bg-dark-900 border border-dark-600 p-4 rounded-md"
@@ -274,12 +350,10 @@ const RetailerCreateMarket = () => {
                 <p className="text-light-400">{p.category}</p>
                 <p className="text-light-500">{p.description}</p>
                 <p className="text-light-300">
-                  Purchase Price: ₹{p.purchasePrice} | Selling Price: ₹
-                  {p.sellingPrice}
+                  Selling Price: ₹{p.sellingPrice} | Stock: {p.stock}
                 </p>
-                <p className="text-light-300">Stock: {p.stock}</p>
                 <p className="text-light-400">
-                  Status: {p.status} | Visible: {p.visibility ? "Yes" : "No"}
+                  Visible: {p.visibility ? "Yes" : "No"}
                 </p>
               </div>
             ))
@@ -289,7 +363,7 @@ const RetailerCreateMarket = () => {
     );
   }
 
-  // Main markets page (with Create Market form)
+  // ---------------- Markets Page ----------------
   return (
     <div className="space-y-8">
       {/* Create Market Form */}
@@ -299,6 +373,19 @@ const RetailerCreateMarket = () => {
       >
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <h2 className="text-xl font-bold text-black">Create Market</h2>
+         <select
+            name="marketId"
+            onChange={handleMarketChange}
+            value={form.marketId || ""}
+            className="w-full px-3 py-2 rounded-md bg-dark-900 text-black"
+          >
+            <option value="">-- Select from Markets --</option>
+            {allMarkets.map((bp) => (
+              <option key={bp._id} value={bp._id}>
+                {bp.name}
+              </option>
+            ))}
+          </select>
         <input
           type="text"
           name="name"

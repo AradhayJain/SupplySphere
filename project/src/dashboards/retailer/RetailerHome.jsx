@@ -27,7 +27,9 @@ const StatCard = ({ label, value }) => (
   </div>
 );
 
-const ProductCard = ({ product, onBuyNow }) => (
+const ProductCard = ({ product, onBuyNow,boughtPro }) => {
+  const hasBought = boughtPro.some((p) => p.productId === product._id);
+  return (
   <div className="bg-dark-700/70 border border-dark-600 p-5 rounded-2xl shadow-md hover:shadow-primary/20 hover:border-primary transition-all duration-300 flex flex-col group">
     <div className="w-full h-44 mb-4 rounded-lg overflow-hidden">
       <img
@@ -39,14 +41,25 @@ const ProductCard = ({ product, onBuyNow }) => (
     <h3 className="text-lg font-semibold text-light-100 mb-1">{product.name}</h3>
     <p className="text-sm text-light-400 mb-3 line-clamp-2 flex-grow">{product.description}</p>
     <p className="text-2xl font-bold text-primary mb-4">₹ {product.price}</p>
-    <button
-      onClick={() => onBuyNow(product)}
-      className="mt-auto bg-gradient-to-r from-primary to-primary-dark text-white px-4 py-2 rounded-lg font-medium hover:scale-105 transition-transform duration-200 w-full"
-    >
-      Buy Now
-    </button>
+    
+{hasBought ? (
+  <button
+    className="mt-auto bg-gradient-to-r from-primary to-primary-dark text-white px-4 py-2 rounded-lg font-medium hover:scale-105 transition-transform duration-200 w-full"
+  >
+    Bought
+  </button>
+) : (
+  <button
+    onClick={() => onBuyNow(product)}
+    className="mt-auto bg-gradient-to-r from-primary to-primary-dark text-white px-4 py-2 rounded-lg font-medium hover:scale-105 transition-transform duration-200 w-full"
+  >
+    Buy Now
+  </button>
+)}
+    
   </div>
-);
+  )
+};
 
 
 const COUPON_DISCOUNT = 50;
@@ -55,13 +68,14 @@ const CheckoutSidebar = ({ isOpen, onClose, product, onSubmit, isSubmitting }) =
   const [form, setForm] = useState({
     address: "",
     coupon: "",
+    quantity:1,
     deliveryMethod: "home-delivery",
     paymentMethod: "razorpay",
   });
 
   useEffect(() => {
     if (product) {
-      setForm({ address: "", coupon: "", deliveryMethod: "home-delivery", paymentMethod: "razorpay" });
+      setForm({ address: "", coupon: "", quantity:1, deliveryMethod: "home-delivery", paymentMethod: "razorpay" });
     }
   }, [product]);
 
@@ -74,6 +88,7 @@ const CheckoutSidebar = ({ isOpen, onClose, product, onSubmit, isSubmitting }) =
     e.preventDefault();
     const discount = form.coupon ? COUPON_DISCOUNT : 0;
     const totalAmount = product.price - discount;
+    console.log(form)
     onSubmit({ ...form, discount, totalAmount });
   };
 
@@ -122,6 +137,21 @@ const CheckoutSidebar = ({ isOpen, onClose, product, onSubmit, isSubmitting }) =
                     {["razorpay", "UPI", "Card"].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
+
+                <div>
+                  <label htmlFor="quantity" className="block text-sm font-medium text-light-400 mb-1.5">Quantity</label>
+                  <input
+                    type="number"
+                    name="quantity"   // ✅ add this so handleInputChange works
+                    min="1"
+                    value={form.quantity}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))
+                    }
+                    className="text-black w-full"
+                    placeholder="Enter Quantity"
+                  />
+                </div>
                 <div className="bg-dark-800 p-4 rounded-lg border border-dark-700 space-y-2">
                   <div className="flex justify-between text-light-300"><span>Subtotal:</span> <span className="font-medium">₹ {subtotal.toFixed(2)}</span></div>
                   {isCouponApplied && (
@@ -150,12 +180,29 @@ const CheckoutSidebar = ({ isOpen, onClose, product, onSubmit, isSubmitting }) =
 // ===================================================================================
 
 const RetailerHome = () => {
-  const { products, token } = useAuth();
+  const { products, token,allMarkets } = useAuth();
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [boughtPro,setBoughtPro] = useState([]);
+
+  useEffect(()=>{
+    const fetchBought = async () =>{
+      const boughtRes = await fetch(
+        "http://localhost:3000/api/retail/products/bought",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const boughtData = await boughtRes.json();
+      setBoughtPro(boughtData);
+
+
+    }
+    fetchBought();
+  },[token])
 
   // Mock Data (moved inside for better encapsulation)
+  const count = allMarkets.filter(m=>m.status==='Active').length
   const quickActions = [
     { title: "Create Market", desc: "Start a new market and expand your reach.", icon: <PlusCircle className="w-6 h-6 text-primary" />, btn: "New Market" },
     { title: "Recent Orders", desc: "Check the latest customer orders in your queue.", icon: <ClipboardList className="w-6 h-6 text-primary" />, btn: "View Orders" },
@@ -166,7 +213,7 @@ const RetailerHome = () => {
     { label: "Orders", value: "98" },
     { label: "Revenue", value: "₹ 2,40,000" },
     { label: "New Customers", value: "42" },
-    { label: "Markets Active", value: "5" },
+    { label: "Markets Active", value: `${count}` },
   ];
 
   const handleBuyNow = (product) => {
@@ -186,7 +233,7 @@ const RetailerHome = () => {
     try {
       
       const payload = {
-        products: [{ productId: selectedProduct._id, quantity: 10, price: selectedProduct.price }],
+        products: [{ productId: selectedProduct._id, quantity: orderDetails.quantity, price: selectedProduct.price }],
         totalAmount: orderDetails.totalAmount,
         discountApplied: orderDetails.discount,
         paymentMethod: orderDetails.paymentMethod,
@@ -200,6 +247,8 @@ const RetailerHome = () => {
 
       if (res.status === 201) {
         alert(`✅ Order placed for ${selectedProduct.name}!`); // Consider a toast notification library
+        setBoughtPro([...boughtPro,res.data])
+        // console.log(res.data)
         handleCloseCheckout();
       }
     } catch (error) {
@@ -207,6 +256,7 @@ const RetailerHome = () => {
       alert("❌ Failed to place order. Please check your details and try again.");
     } finally {
       setIsSubmitting(false);
+    
     }
   };
 
@@ -246,7 +296,7 @@ const RetailerHome = () => {
           {products && products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product) => (
-                <ProductCard key={product._id} product={product} onBuyNow={handleBuyNow} />
+                <ProductCard key={product._id} product={product} onBuyNow={handleBuyNow} boughtPro={boughtPro} />
               ))}
             </div>
           ) : (

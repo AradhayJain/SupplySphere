@@ -8,52 +8,12 @@ import uploadOnCloudinary from '../utils/cloudinary.js';
 
 
 export const getProductsManufacturer = asyncHandler(async (req, res) => {
-  const pageSize = 12; // Number of products per page
-  const page = Number(req.query.pageNumber) || 1;
-
-  // Keyword search (name or description)
-  const keyword = req.query.keyword
-    ? {
-        $or: [
-          { name: { $regex: req.query.keyword, $options: "i" } },
-          { description: { $regex: req.query.keyword, $options: "i" } },
-        ],
-      }
-    : {};
-
-  // Category filter (optional)
-  const category = req.query.category ? { category: req.query.category } : {};
-
-  // Sorting (default: newest)
-  let sortOption = { createdAt: -1 };
-  if (req.query.sort === "price-asc") sortOption = { price: 1 };
-  if (req.query.sort === "price-desc") sortOption = { price: -1 };
-  if (req.query.sort === "name") sortOption = { name: 1 };
-
-  // Count total (only manufacturer role)
-  const count = await Product.countDocuments({
-    role: "Manufacturer",
-    ...keyword,
-    ...category,
-  });
-
-  // Get paginated products & populate manufacturer details
-  const products = await Product.find({
-    role: "Manufacturer",
-    ...keyword,
-    ...category,
-  })
-    .sort(sortOption)
-    .limit(pageSize)
-    .skip(pageSize * (page - 1))
+  const products = await Product.find()
     .populate("sellerId", "companyName name email"); 
     // 👆 Assuming your Product schema has: user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
 
   res.json({
-    products,
-    page,
-    pages: Math.ceil(count / pageSize),
-    totalProducts: count,
+    products
   });
 });
 
@@ -62,7 +22,7 @@ export const getProductsManufacturer = asyncHandler(async (req, res) => {
 // @route   GET /api/products/:id
 // @access  Public
 const getProductById = asyncHandler(async (req, res) => {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id).polygonate("sellerId", "companyName name email");
 
     if (product) {
         res.json(product);
@@ -70,6 +30,18 @@ const getProductById = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Product not found');
     }
+});
+
+export const getManProductsById = asyncHandler(async (req, res) => {
+  const ids = req.user._id;
+  const products = await Product.find({ sellerId: ids });
+  if (products) {
+      res.json(products);
+  }
+  else {
+      res.status(404);
+      throw new Error('Products not found');
+  }
 });
 
 // @desc    Create a new product review

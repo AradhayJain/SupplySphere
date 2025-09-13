@@ -13,6 +13,10 @@ const ManufacturerHome = () => {
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  useEffect(()=>{
+    console.log(products)
+  },[])
+
   // Fetch orders from backend
   useEffect(() => {
     const fetchOrders = async () => {

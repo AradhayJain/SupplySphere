@@ -1,9 +1,13 @@
 import { RetailMarket } from "../models/retailMarket.model.js";
 import asyncHandler from 'express-async-handler';
 import RetailerProduct from "../models/retailProducts.mode.js";
+import { RetailOrder } from "../models/retailOrders.model.js";
+import { Order } from "../models/order.model.js";
 
 export const createRetailMarket = asyncHandler(async (req, res) => {
     const { name, location,description } = req.body;
+
+
     const owner = req.user._id; // Assuming req.user is set by auth middleware
     const newMarket = new RetailMarket({
         name,
@@ -17,9 +21,14 @@ export const createRetailMarket = asyncHandler(async (req, res) => {
 });
 
 export const getRetailMarkets = asyncHandler(async (req, res) => {
-    const markets = await RetailMarket.find().populate('owner', 'companyName email PhoneNumber');
+    const markets = await RetailMarket.find({owner:req.user._id}).populate('owner', 'companyName email PhoneNumber');
     res.json(markets);
 });
+
+export const getAllMarkets = asyncHandler(async (req,res)=>{
+  const markets = await RetailMarket.find().populate('owner', 'companyName email PhoneNumber');
+  res.json(markets);
+})
 
 
 // @desc    Add a product (Retailer only)
@@ -76,9 +85,45 @@ export const getRetailerProducts = asyncHandler(async (req, res) => {
     res.json(products);
 });
 
+export const getRetailBought = asyncHandler(async (req, res) => {
+  try {
+    // Find all orders where this user is the buyer
+    const orders = await Order.find({ buyerId: req.user._id })
+      .populate({
+        path: "products.productId",
+        model: "Product",
+        select: "name category description purchasePrice images",
+      })
+      .populate("sellerId", "companyName email"); // optional, to know from whom they bought
+
+    // Flatten products into a list
+    const boughtProducts = orders.flatMap((order) =>
+      order.products.map((p) => ({
+        orderId: order._id,
+        productId: p.productId?._id,
+        name: p.productId?.name,
+        category: p.productId?.category,
+        description: p.productId?.description,
+        purchasePrice: p.price,
+        quantity: p.quantity,
+        seller: order.sellerId,
+      }))
+    );
+    console.log(boughtProducts)
+
+    res.json(boughtProducts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch bought products" });
+  }
+});
+
 export const getProductsByMarket = asyncHandler(async (req, res) => {
   try {
     const { marketId } = req.query;
+
+    console.log("Fetching products for marketId:", marketId);
+  
 
     if (!marketId) {
       res.status(400);
@@ -86,6 +131,7 @@ export const getProductsByMarket = asyncHandler(async (req, res) => {
     }
 
     const products = await RetailerProduct.find({ marketId }).populate("retailerId", "companyName email");
+    console.log(products)
 
     res.status(200).json(products);
   } catch (error) {
