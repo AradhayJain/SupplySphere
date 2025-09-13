@@ -192,7 +192,7 @@ const ManufacturerHome = () => {
                 className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:shadow-lg hover:scale-[1.02] transition"
               >
                 <img
-                  src={p.images[0] || "https://via.placeholder.com/150"}
+                  src={p.images || "https://via.placeholder.com/150"}
                   alt={p.name}
                   className="w-full h-32 object-cover rounded-lg mb-3"
                 />
@@ -201,9 +201,7 @@ const ManufacturerHome = () => {
                 <p className="text-emerald-400 font-bold mt-1">
                   ₹ {p.price.toLocaleString()}
                 </p>
-                <button className="mt-3 w-full bg-emerald-500 text-white py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-emerald-600 transition">
-                  <ShoppingCart size={16} /> Buy Now
-                </button>
+               
               </div>
             ))
           ) : (

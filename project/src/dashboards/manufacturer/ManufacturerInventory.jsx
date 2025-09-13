@@ -34,7 +34,7 @@ const ManufacturerInventory = () => {
       sku: "",
       category: "",
       description: "",
-      images: [],
+      images: "",
       price: 0,
       minOrderQty: 1,
       stock: 0,
@@ -66,53 +66,56 @@ const ManufacturerInventory = () => {
   };
 
   // Add product
-  const addProduct = async (e) => {
-    e.preventDefault();
+  // Add product
+const addProduct = async (e) => {
+  e.preventDefault();
 
-    if (!form.name.trim() || !form.sku.trim()) {
-      return alert("Product name and SKU are required");
+  if (!form.name.trim() || !form.sku.trim()) {
+    return alert("Product name and SKU are required");
+  }
+
+  try {
+    const fd = new FormData();
+    fd.append("role", "Manufacturer");
+    fd.append("sellerId", user?._id);
+    fd.append("name", form.name);
+    fd.append("sku", form.sku);
+    fd.append("category", form.category);
+    fd.append("description", form.description);
+    fd.append("price", Number(form.price));
+    fd.append("minOrderQty", Number(form.minOrderQty) || 1);
+    fd.append("stock", Number(form.stock));
+    fd.append("dynamicPricing", form.dynamicPricing);
+    fd.append("isExclusive", form.isExclusive);
+    fd.append("exclusiveRetailer", form.exclusiveRetailer);
+    fd.append("images", form.images); // 👈 must be File, not base64
+    
+
+    const response = await fetch("http://localhost:3000/api/products/add", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // ❌ don't set Content-Type, browser will set it with boundary
+      },
+      body: fd,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to add product");
     }
 
-    try {
-      const response = await fetch("http://localhost:3000/api/products/add", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          role: "Manufacturer",
-          sellerId: user?._id,
-          name: form.name,
-          sku: form.sku,
-          category: form.category,
-          description: form.description,
-          images: form.images || [],
-          price: Number(form.price),
-          minOrderQty: Number(form.minOrderQty) || 1,
-          pricingTiers: form.pricingTiers || [],
-          stock: Number(form.stock),
-          dynamicPricing: form.dynamicPricing,
-          isExclusive: form.isExclusive,
-        }),
-      });
+    setProducts((prev) => [data.product, ...prev]);
+    resetForm();
+    setCurrentPage(1);
+    alert("✅ Product added successfully!");
+  } catch (err) {
+    console.error("Add product error:", err);
+    alert(err.message);
+  }
+};
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to add product");
-      }
-
-      // ✅ Update global state
-      setProducts((prev) => [data.product, ...prev]);
-      resetForm();
-      setCurrentPage(1);
-      alert("✅ Product added successfully!");
-    } catch (err) {
-      console.error("Add product error:", err);
-      alert(err.message);
-    }
-  };
 
   // Edit
   const startEdit = (product) => {
@@ -271,19 +274,9 @@ const ManufacturerInventory = () => {
         type="file"
         accept="image/*"
         multiple
-        onChange={(e) => handleImageUpload(e, "form")}
+        onChange={(e) => setForm({...form , images:e.target.files[0]})}
         className="block w-full text-sm text-light-400"
       />
-      <div className="flex gap-2 mt-2 flex-wrap">
-        {form.images.map((img, i) => (
-          <img
-            key={i}
-            src={img}
-            alt="preview"
-            className="w-16 h-16 object-cover rounded-lg border border-dark-600"
-          />
-        ))}
-      </div>
     </div>
 
     {/* Dynamic Pricing */}
@@ -353,7 +346,7 @@ const ManufacturerInventory = () => {
                   <td className="py-2 px-3">
                     {p.images?.length > 0 ? (
                       <img
-                        src={p.images[0]}
+                        src={p.images}
                         alt={p.name}
                         className="w-12 h-12 object-cover rounded"
                       />

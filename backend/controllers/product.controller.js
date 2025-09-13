@@ -109,10 +109,11 @@ export const addProduct = asyncHandler(async (req, res) => {
       throw new Error("Seller ID, name, price, and stock are required.");
     }
 
-    let imageUrls = [];
+    let imageUrls = null;
     if (req.file) {
+      console.log(req.file.path)
       const result = await uploadOnCloudinary(req.file.path);
-      if (result) imageUrls.push(result.secure_url);
+      if (result) imageUrls=result.secure_url;
     }
     let parsedPricingTiers = [];
 if (pricingTiers) {
@@ -126,6 +127,7 @@ if (pricingTiers) {
 
 
     const product = new Product({
+      role:role,
       sellerId,
       name,
       category,

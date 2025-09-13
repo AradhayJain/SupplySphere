@@ -18,11 +18,10 @@ const uploadOnCloudinary = async (localFilePath) => {
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto", // Let Cloudinary detect the file type
       folder: "supply_sphere", // Optional: specify a folder in your Cloudinary account
-      use_filename: true,
-      unique_filename: false
+      unique_filename: true
     });
 
-    fs.unlinkSync(localFilePath);
+    // fs.unlinkSync(localFilePath);
     return response; // Return the full response object
   } catch (error) {
     console.error("Cloudinary Upload Error:", error);
