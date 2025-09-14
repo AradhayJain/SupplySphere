@@ -13,10 +13,16 @@ const ManufacturerSalesHistory = () => {
   const paidInvoices = sales.filter((s) => s.status === "Paid").length;
   const unpaidInvoices = sales.filter((s) => s.status !== "Paid").length;
 
+  const statusColors = {
+    Paid: "bg-green-600 text-green-100",
+    Unpaid: "bg-yellow-600 text-yellow-100",
+    Overdue: "bg-red-600 text-red-100",
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="p-6 bg-gray-900 min-h-screen text-gray-100 space-y-8">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white p-8 rounded-2xl shadow-lg">
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-8 rounded-2xl shadow-lg">
         <h1 className="text-3xl font-bold">Sales History</h1>
         <p className="text-sm mt-2 opacity-90">
           Track invoices, revenue, and payment status.
@@ -25,55 +31,51 @@ const ManufacturerSalesHistory = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-dark-800/60 border border-dark-700 backdrop-blur-lg rounded-2xl p-5 shadow-lg">
-          <p className="text-sm text-light-400">Total Revenue</p>
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-lg">
+          <p className="text-sm text-gray-400">Total Revenue</p>
           <h2 className="text-2xl font-bold text-emerald-400">
             ₹ {totalRevenue.toLocaleString()}
           </h2>
         </div>
-        <div className="bg-dark-800/60 border border-dark-700 backdrop-blur-lg rounded-2xl p-5 shadow-lg">
-          <p className="text-sm text-light-400">Paid Invoices</p>
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-lg">
+          <p className="text-sm text-gray-400">Paid Invoices</p>
           <h2 className="text-2xl font-bold text-green-400">{paidInvoices}</h2>
         </div>
-        <div className="bg-dark-800/60 border border-dark-700 backdrop-blur-lg rounded-2xl p-5 shadow-lg">
-          <p className="text-sm text-light-400">Pending / Overdue</p>
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-lg">
+          <p className="text-sm text-gray-400">Pending / Overdue</p>
           <h2 className="text-2xl font-bold text-red-400">{unpaidInvoices}</h2>
         </div>
       </div>
 
       {/* Sales Table */}
-      <div className="bg-dark-800/60 border border-dark-700 backdrop-blur-lg rounded-2xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-light-100 mb-4">Invoice Records</h3>
+      <div className="rounded-lg overflow-hidden border border-gray-700 bg-gray-800 shadow-lg">
+        <h3 className="text-lg font-semibold text-gray-100 p-6 pb-2">
+          Invoice Records
+        </h3>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-dark-700 text-light-300">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-700 text-gray-300 uppercase text-xs">
               <tr>
-                <th className="px-4 py-2 text-left">Invoice ID</th>
-                <th className="px-4 py-2 text-left">Buyer</th>
-                <th className="px-4 py-2 text-left">Amount</th>
-                <th className="px-4 py-2 text-left">Date</th>
-                <th className="px-4 py-2 text-left">Status</th>
+                <th className="px-6 py-3 text-left">Invoice ID</th>
+                <th className="px-6 py-3 text-left">Buyer</th>
+                <th className="px-6 py-3 text-left">Amount</th>
+                <th className="px-6 py-3 text-left">Date</th>
+                <th className="px-6 py-3 text-left">Status</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-700">
               {sales.map((sale) => (
                 <tr
                   key={sale.id}
-                  className="border-t border-dark-700 hover:bg-dark-700/40 text-light-200"
+                  className="hover:bg-gray-700 transition-colors text-gray-200"
                 >
-                  <td className="px-4 py-2">{sale.id}</td>
-                  <td className="px-4 py-2">{sale.buyer}</td>
-                  <td className="px-4 py-2">₹ {sale.amount.toLocaleString()}</td>
-                  <td className="px-4 py-2">{sale.date}</td>
-                  <td className="px-4 py-2">
+                  <td className="px-6 py-3 font-medium">{sale.id}</td>
+                  <td className="px-6 py-3">{sale.buyer}</td>
+                  <td className="px-6 py-3">₹ {sale.amount.toLocaleString()}</td>
+                  <td className="px-6 py-3">{sale.date}</td>
+                  <td className="px-6 py-3">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        sale.status === "Paid"
-                          ? "bg-green-500/20 text-green-400"
-                          : sale.status === "Unpaid"
-                          ? "bg-yellow-500/20 text-yellow-400"
-                          : "bg-red-500/20 text-red-400"
-                      }`}
+                      className={`px-2 py-1 rounded-lg text-xs font-medium ${statusColors[sale.status]}`}
                     >
                       {sale.status}
                     </span>

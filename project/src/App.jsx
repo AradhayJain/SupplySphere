@@ -47,6 +47,7 @@ import LogisticsProfile from "./dashboards/logistics/LogisticsProfile";
 // providers
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { CartProvider } from "./contexts/CartContext";
+import ManufacturerOrders from "./dashboards/manufacturer/ManufacturerOrders";
 
 function App() {
   return (
@@ -92,6 +93,7 @@ function App() {
                     path="sales-history"
                     element={<ManufacturerSalesHistory />}
                   />
+                  <Route path = "Orders" element={<ManufacturerOrders/>}/>
                   <Route path="profile" element={<ManufacturerProfile />} />
                 </Route>
 

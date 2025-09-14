@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [allMarkets,setAllMarkets] = useState([]);
   const [markets,setMarkets] = useState([])
+  const [pendingOrders, setPendingOrders] = useState(0);
 
   useEffect(() => {
     try {
@@ -146,7 +147,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, role, isAuthenticated, loading, login, logout, products ,setProducts,allMarkets,markets,setMarkets}}
+      value={{ pendingOrders,setPendingOrders, user, token, role, isAuthenticated, loading, login, logout, products ,setProducts,allMarkets,markets,setMarkets}}
     >
       {!loading && children}
     </AuthContext.Provider>

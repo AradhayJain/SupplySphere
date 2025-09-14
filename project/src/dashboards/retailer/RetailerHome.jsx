@@ -111,7 +111,7 @@ const CheckoutSidebar = ({ isOpen, onClose, product, onSubmit, isSubmitting }) =
             {product && (
               <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
                 <div className="flex items-center gap-4 p-4 bg-dark-800 rounded-xl border border-dark-700">
-                  <img src={product.images[0]} alt={product.name} className="w-16 h-16 object-cover rounded-lg" />
+                  <img src={product.images} alt={product.name} className="w-16 h-16 object-cover rounded-lg" />
                   <div>
                     <h3 className="font-semibold text-light-100">{product.name}</h3>
                     <p className="text-primary font-bold text-lg">₹ {product.price}</p>

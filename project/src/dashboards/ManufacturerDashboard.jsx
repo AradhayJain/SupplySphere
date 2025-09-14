@@ -34,9 +34,10 @@ const ManufacturerDashboard = ({ previewMode = false }) => {
         const data = await res.json();
 
         if (res.ok) {
-          const pending = data.orders.filter(
-            (o) => o.status === "Pending"
-          ).length;
+          const pending = data.reduce(
+  (count, o) => (o.status === "pending" ? count + 1 : count),
+  0
+);
           setPendingOrders(pending);
         } else {
           console.error(data.message || "Failed to fetch orders");
@@ -53,6 +54,7 @@ const ManufacturerDashboard = ({ previewMode = false }) => {
     { name: "Home", path: "home", icon: BarChart3 },
     { name: "Inventory", path: "inventory", icon: Package },
     { name: "Sales History", path: "sales-history", icon: ClipboardList },
+    {name: "Orders" , path: "Orders" , icon:ClipboardList},
     { name: "Profile", path: "profile", icon: User },
   ];
 

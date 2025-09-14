@@ -479,14 +479,14 @@ const addProduct = async (e) => {
                 className="text-sm text-light-400"
               />
               <div className="flex gap-2 flex-wrap">
-                {selected.images?.map((img, i) => (
+                
                   <img
-                    key={i}
-                    src={img}
+                    key={selected._id}
+                    src={selected.images}
                     alt="preview"
                     className="w-16 h-16 object-cover rounded border"
                   />
-                ))}
+                
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-4">

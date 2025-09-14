@@ -33,7 +33,7 @@ router.put("/reset-password/:resettoken", resetPassword);
 router.post("/register-verify-otp", registerVerifyOtp);
 router.post("/register-request-otp", upload.single("pic"), registerRequestOtp);
 router.get("/profile", protect, getUserProfile);
-router.put("/profile", protect, upload.single('pic'),updateUserProfile);
+router.put("/profile", protect,updateUserProfile);
 router.put("/change-password", protect, changePassword);
 
 

@@ -36,7 +36,7 @@ export const getAllMarkets = asyncHandler(async (req,res)=>{
 // @access  Private (Retailer)
 export const addProductRetailer = asyncHandler(async (req, res) => {
   try {
-    const { marketId, name, category, description, purchasePrice, sellingPrice, stock, visibility } = req.body;
+    const { marketId, name, category, description, purchasePrice, sellingPrice, stock, visibility,productId } = req.body;
     const retailerId = req.user._id; // set by auth middleware
 
     // ✅ Validate required fields
@@ -67,6 +67,27 @@ export const addProductRetailer = asyncHandler(async (req, res) => {
     });
 
     const createdProduct = await product.save();
+
+    if(productId.length > 0 ){
+
+      const bought = await Order.findOne({ buyerId: retailerId , _id:productId});
+      console.log(bought)
+
+      if (bought) {
+      bought.products.forEach((p) => {
+        if (p.price == purchasePrice) {
+          p.quantity = p.quantity - stock;
+        }
+      });
+      await bought.save();
+    }
+
+    }
+
+
+    
+    
+    
 
     res.status(201).json({
       success: true,

@@ -47,7 +47,11 @@ export const createOrder = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/myorders
 // @access  Private
 export const getMyOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ sellerId: req.user._id }).populate("products.productId", "name price");
+  const orders = await Order.find({ sellerId: req.user._id })
+  .populate("buyerId","name email")
+  .populate("products.productId", "name price");
+
+  console.log(orders)
   console.log(orders)
   res.json(orders);
 });

@@ -10,7 +10,7 @@ const ManufacturerProfile = () => {
   address: "123 Industrial Park, Mumbai, India",
 });
 
-const { user , token } = useAuth();
+const { user , token , login } = useAuth();
 
 useEffect(() => {
   if (user) {
@@ -19,6 +19,7 @@ useEffect(() => {
       companyName: user.CompanyName || prev.companyName,
       email: user.email || prev.email,
       phone: user.PhoneNumber || prev.phone,
+      address: user.Address 
       // you can also add address if user has it
     }));
   }
@@ -36,10 +37,29 @@ useEffect(() => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSave = () => {
-    setProfile(formData);
-    setEditMode(false);
-  };
+  const handleSave = async () => {
+  try {
+    const { data } = await axios.put(
+      "http://localhost:3000/api/user/profile",
+      formData, // <-- this is the request body
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (data) {
+      console.log(data)
+      login(data);
+      setProfile(formData);
+      setEditMode(false);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 
   const handlePasswordChange = async () => {
   if (passwordData.new !== passwordData.confirm) {

@@ -209,7 +209,6 @@ const handleSubmit = async (e) => {
           Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           ...productForm,
-          purchasePrice:1,
           marketId: selectedMarket._id,
         }),
       });

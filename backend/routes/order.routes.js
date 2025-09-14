@@ -10,6 +10,7 @@ import {
 } from "../controllers/order.controller.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { getManProductsById } from "../controllers/product.controller.js";
+import { Order } from "../models/order.model.js";
 
 const router = express.Router();
 

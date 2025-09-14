@@ -5,11 +5,11 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const ManufacturerHome = () => {
   const navigate = useNavigate();
-  const { user, token, products } = useAuth();
+  const { user, token, products,pendingOrders,setPendingOrders } = useAuth();
 
   // Orders & metrics state
   const [orders, setOrders] = useState([]);
-  const [pendingOrders, setPendingOrders] = useState(0);
+  
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -30,13 +30,15 @@ const ManufacturerHome = () => {
           setOrders(data || []);
 
           // Calculate metrics
-          const pending = data.orders.filter(
-            (o) => o.status === "Pending"
-          ).length;
+          const pending = data.reduce(
+  (count, o) => (o.status === "pending" ? count + 1 : count),
+  0
+);
+
           const currentMonth = new Date().getMonth();
-          const revenue = data.orders
+          const revenue = data
             .filter((o) => new Date(o.createdAt).getMonth() === currentMonth)
-            .reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+            .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
           setPendingOrders(pending);
           setMonthlyRevenue(revenue);
@@ -148,12 +150,12 @@ const ManufacturerHome = () => {
                 >
                   <td className="px-4 py-2 text-gray-200">{order._id}</td>
                   <td className="px-4 py-2 text-gray-200">
-                    {order.buyerId || "Unknown"}
+                    {order.buyerId.email || "Unknown"}
                   </td>
                   <td className="px-4 py-2">
                     <span
                       className={`px-2 py-1 rounded text-xs font-medium ${
-                        order.status === "Pending"
+                        order.status === "pending"
                           ? "bg-yellow-400/20 text-yellow-300"
                           : order.status === "Shipped"
                           ? "bg-blue-400/20 text-blue-300"

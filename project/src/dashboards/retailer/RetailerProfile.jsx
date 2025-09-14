@@ -1,205 +1,226 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import axios from "axios";
 
-const RetailerProfile = () => {
+const ManufacturerProfile = () => {
   const [profile, setProfile] = useState({
-    name: "City Retailers Pvt Ltd",
-    email: "retailer@supply.com",
-    phone: "+91 9876543210",
-    address: "12 Market Street, Mumbai, India",
+  companyName: "Acme Manufacturing Ltd.",
+  email: "manufacturer@supply.com",
+  phone: "+91 9876543210",
+  address: "123 Industrial Park, Mumbai, India",
+});
+
+const { user , token , login } = useAuth();
+
+useEffect(() => {
+  if (user) {
+    setProfile((prev) => ({
+      ...prev,
+      companyName: user.CompanyName || prev.companyName,
+      email: user.email || prev.email,
+      phone: user.PhoneNumber || prev.phone,
+      address: user.Address 
+      // you can also add address if user has it
+    }));
+  }
+}, [user]);
+
+  const [editMode, setEditMode] = useState(false);
+  const [formData, setFormData] = useState(profile);
+  const [passwordData, setPasswordData] = useState({
+    current: "",
+    new: "",
+    confirm: "",
   });
 
-  const [editing, setEditing] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({ current: "", newPass: "", confirm: "" });
-  const [loading, setLoading] = useState(false);
-
   const handleChange = (e) => {
-    setProfile({ ...profile, [e.target.name]: e.target.value });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handlePasswordChange = (e) => {
-    setPasswordForm({ ...passwordForm, [e.target.name]: e.target.value });
-  };
-
-  // Save profile API call
-  const saveProfile = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/retailer/profile", {
-        method: "PATCH",
+  const handleSave = async () => {
+  try {
+    const { data } = await axios.put(
+      "http://localhost:3000/api/user/profile",
+      formData, // <-- this is the request body
+      {
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`, // token from login
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(profile),
-      });
+      }
+    );
 
-      if (!res.ok) throw new Error("Failed to update profile");
-
-      const data = await res.json();
-      setProfile(data); // updated profile
-      setEditing(false);
-      alert("Profile updated successfully!");
-    } catch (error) {
-      console.error(error);
-      alert(error.message);
-    } finally {
-      setLoading(false);
+    if (data) {
+      console.log(data)
+      login(data);
+      setProfile(formData);
+      setEditMode(false);
     }
-  };
+  } catch (error) {
+    console.error(error);
+  }
+};
 
-  // Update password API call
-  const updatePassword = async () => {
-    if (passwordForm.newPass !== passwordForm.confirm) {
-      alert("Passwords do not match!");
-      return;
+
+  const handlePasswordChange = async () => {
+  if (passwordData.new !== passwordData.confirm) {
+    alert("New passwords do not match");
+    return;
+  }
+
+  try {
+    const response = await axios.put(
+  "http://localhost:3000/api/user/change-password",
+  {
+    oldPassword: passwordData.current,  // ✅ matches backend
+    newPassword: passwordData.new
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+    if(response.data){
+      alert("Password changed successfully");
+      setPasswordData({ current: "", new: "", confirm: "" });
+      console.log("Password change response:", response.data);
     }
-    try {
-      setLoading(true);
-      const res = await fetch("http://localhost:3000/api/user/change-password", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          oldPassowrd: passwordForm.current,
-          newPassword: passwordForm.newPass,
-        }),
-      });
+    
+  } catch (error) {
+    console.error("Password change error:", error);
+    alert("Failed to change password");
+    
+  }
+};
 
-      if (!res.ok) throw new Error("Failed to change password");
-
-      alert("Password updated successfully!");
-      setPasswordForm({ current: "", newPass: "", confirm: "" });
-    } catch (error) {
-      console.error(error);
-      alert(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
-    <div className="space-y-6 text-white"> {/* Main container text white */}
-  <h1 className="text-2xl font-bold">Retailer Profile</h1>
+    <div className="space-y-8">
+      {/* Banner */}
+      <div className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white p-8 rounded-2xl shadow-lg">
+        <h1 className="text-3xl font-bold">Retailer Profile</h1>
+        <p className="text-sm mt-2 opacity-90">
+          Manage your company information and account security.
+        </p>
+      </div>
 
-  {/* Profile Info */}
-  <div className="bg-gray-800 p-6 rounded-lg shadow-md"> {/* Dark card */}
-    <h2 className="text-lg font-semibold mb-4 text-white">Company Information</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-300">Company Name</label>
-        <input
-          type="text"
-          name="name"
-          value={profile.name}
-          onChange={handleChange}
-          disabled={!editing}
-          className={`w-full border rounded-md px-3 py-2 ${editing ? "bg-gray-700 text-white border-gray-600" : "bg-gray-900 text-gray-400 border-gray-700"}`}
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-300">Email</label>
-        <input
-          type="email"
-          name="email"
-          value={profile.email}
-          onChange={handleChange}
-          disabled={!editing}
-          className={`w-full border rounded-md px-3 py-2 ${editing ? "bg-gray-700 text-white border-gray-600" : "bg-gray-900 text-gray-400 border-gray-700"}`}
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-300">Phone</label>
-        <input
-          type="text"
-          name="phone"
-          value={profile.phone}
-          onChange={handleChange}
-          disabled={!editing}
-          className={`w-full border rounded-md px-3 py-2 ${editing ? "bg-gray-700 text-white border-gray-600" : "bg-gray-900 text-gray-400 border-gray-700"}`}
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-300">Address</label>
-        <input
-          type="text"
-          name="address"
-          value={profile.address}
-          onChange={handleChange}
-          disabled={!editing}
-          className={`w-full border rounded-md px-3 py-2 ${editing ? "bg-gray-700 text-white border-gray-600" : "bg-gray-900 text-gray-400 border-gray-700"}`}
-        />
-      </div>
-    </div>
-    <div className="mt-4">
-      {editing ? (
-        <button
-          onClick={saveProfile}
-          disabled={loading}
-          className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 disabled:opacity-50"
-        >
-          {loading ? "Saving..." : "Save Changes"}
-        </button>
-      ) : (
-        <button
-          onClick={() => setEditing(true)}
-          className="bg-gray-700 text-gray-200 px-4 py-2 rounded-md hover:bg-gray-600"
-        >
-          Edit Profile
-        </button>
-      )}
-    </div>
-  </div>
+      {/* Profile Details */}
+      <div className="bg-dark-800/60 border border-dark-700 backdrop-blur-lg rounded-2xl shadow-lg p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold text-light-100">
+            Company Profile
+          </h3>
+          <button
+            onClick={() => setEditMode(!editMode)}
+            className="px-4 py-2 text-sm bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg shadow hover:opacity-90 transition"
+          >
+            {editMode ? "Cancel" : "Edit"}
+          </button>
+        </div>
 
-  {/* Password Change */}
-  <div className="bg-gray-800 p-6 rounded-lg shadow-md">
-    <h2 className="text-lg font-semibold mb-4 text-white">Change Password</h2>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-300">Current Password</label>
-        <input
-          type="password"
-          name="current"
-          value={passwordForm.current}
-          onChange={handlePasswordChange}
-          className="w-full border px-3 py-2 rounded-md bg-gray-700 text-white border-gray-600"
-        />
+        {!editMode ? (
+          <div className="space-y-2 text-light-300">
+            <p>
+              <strong className="text-light-100">Company:</strong>{" "}
+              {profile.companyName}
+            </p>
+            <p>
+              <strong className="text-light-100">Email:</strong> {profile.email}
+            </p>
+            <p>
+              <strong className="text-light-100">Phone:</strong> {profile.phone}
+            </p>
+            <p>
+              <strong className="text-light-100">Address:</strong>{" "}
+              {profile.address}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <input
+              type="text"
+              name="companyName"
+              value={formData.companyName}
+              onChange={handleChange}
+              className="w-full bg-dark-700/50 border border-dark-600 text-light-200 rounded-lg p-2"
+              placeholder="Company Name"
+            />
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full bg-dark-700/50 border border-dark-600 text-light-200 rounded-lg p-2"
+              placeholder="Email"
+            />
+            <input
+              type="text"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="w-full bg-dark-700/50 border border-dark-600 text-light-200 rounded-lg p-2"
+              placeholder="Phone"
+            />
+            <textarea
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              className="w-full bg-dark-700/50 border border-dark-600 text-light-200 rounded-lg p-2"
+              placeholder="Address"
+            />
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg shadow hover:bg-emerald-700 transition"
+            >
+              Save Changes
+            </button>
+          </div>
+        )}
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-300">New Password</label>
-        <input
-          type="password"
-          name="newPass"
-          value={passwordForm.newPass}
-          onChange={handlePasswordChange}
-          className="w-full border px-3 py-2 rounded-md bg-gray-700 text-white border-gray-600"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-300">Confirm Password</label>
-        <input
-          type="password"
-          name="confirm"
-          value={passwordForm.confirm}
-          onChange={handlePasswordChange}
-          className="w-full border px-3 py-2 rounded-md bg-gray-700 text-white border-gray-600"
-        />
-      </div>
-    </div>
-    <div className="mt-4">
-      <button
-        onClick={updatePassword}
-        disabled={loading}
-        className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 disabled:opacity-50"
-      >
-        {loading ? "Updating..." : "Update Password"}
-      </button>
-    </div>
-  </div>
-</div>
 
+      {/* Password Change */}
+      <div className="bg-dark-800/60 border border-dark-700 backdrop-blur-lg rounded-2xl shadow-lg p-6">
+        <h3 className="text-xl font-semibold text-light-100 mb-4">
+          Change Password
+        </h3>
+        <div className="space-y-3">
+          <input
+            type="password"
+            placeholder="Current Password"
+            value={passwordData.current}
+            onChange={(e) =>
+              setPasswordData({ ...passwordData, current: e.target.value })
+            }
+            className="w-full bg-dark-700/50 border border-dark-600 text-light-200 rounded-lg p-2"
+          />
+          <input
+            type="password"
+            placeholder="New Password"
+            value={passwordData.new}
+            onChange={(e) =>
+              setPasswordData({ ...passwordData, new: e.target.value })
+            }
+            className="w-full bg-dark-700/50 border border-dark-600 text-light-200 rounded-lg p-2"
+          />
+          <input
+            type="password"
+            placeholder="Confirm New Password"
+            value={passwordData.confirm}
+            onChange={(e) =>
+              setPasswordData({ ...passwordData, confirm: e.target.value })
+            }
+            className="w-full bg-dark-700/50 border border-dark-600 text-light-200 rounded-lg p-2"
+          />
+          <button
+            onClick={handlePasswordChange}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+          >
+            Update Password
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default RetailerProfile;
+export default ManufacturerProfile;

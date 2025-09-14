@@ -377,31 +377,24 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
-    user.username = req.body.username || user.username;
-    user.name = req.body.name || user.name;
+    user.CompanyName = req.body.companyName || user.CompanyName;
+    user.fullName = req.body.fullName || user.fullName;
     user.email = req.body.email || user.email;
-    user.PhoneNumber = req.body.PhoneNumber || user.PhoneNumber;
-    user.Address = req.body.Address || user.Address;
+    user.PhoneNumber = req.body.phone || user.PhoneNumber;
+    user.Address = req.body.address || user.Address;
 
-    // Handle profile picture update
-    if (req.file && req.file.path) {
-      const picUpload = await uploadOnCloudinary(req.file.path);
-      if (picUpload && picUpload.url) {
-        user.pic = picUpload.url;
-      }
-    }
-
+  
     const updatedUser = await user.save();
 
     res.json({
       _id: updatedUser._id,
-      username: updatedUser.username,
-      name: updatedUser.name,
+      fullName: updatedUser.fullName,
       email: updatedUser.email,
       PhoneNumber: updatedUser.PhoneNumber,
       Address: updatedUser.Address,
-      pic: updatedUser.pic,
-      subscriptionType: updatedUser.subscriptionType,
+      Role: updatedUser.Role,
+      CompanyName: updatedUser.CompanyName,
+      lastLogin: updatedUser.lastLogin,
       token: generateToken(updatedUser._id),
     });
   } else {
