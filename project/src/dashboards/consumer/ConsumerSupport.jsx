@@ -29,12 +29,18 @@ const ConsumerSupport = () => {
 
   return (
     <div className="space-y-8 text-light-100">
-      <h1 className="text-2xl font-bold text-primary">Support Center</h1>
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl font-bold text-primary">Support Center</h1>
+        <p className="text-sm text-light-400">
+          Need help? Submit a ticket below.
+        </p>
+      </div>
 
       {/* Create new support ticket */}
       <form
         onSubmit={handleSubmit}
-        className="bg-dark-900/60 backdrop-blur-lg border border-dark-700 rounded-2xl p-6 flex space-x-4 shadow-lg"
+        className="bg-dark-900/60 backdrop-blur-lg border border-dark-700 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row gap-3 shadow-lg"
       >
         <input
           type="text"
@@ -53,12 +59,12 @@ const ConsumerSupport = () => {
 
       {/* Ticket list */}
       <div className="bg-dark-900/60 backdrop-blur-lg border border-dark-700 rounded-2xl shadow-lg overflow-x-auto">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse min-w-[480px]">
           <thead>
             <tr className="text-left text-sm text-light-400 border-b border-dark-700">
-              <th className="p-4">Ticket ID</th>
-              <th className="p-4">Subject</th>
-              <th className="p-4">Status</th>
+              <th className="p-4 whitespace-nowrap">Ticket ID</th>
+              <th className="p-4 whitespace-nowrap">Subject</th>
+              <th className="p-4 whitespace-nowrap">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -67,9 +73,13 @@ const ConsumerSupport = () => {
                 key={ticket.id}
                 className="border-b border-dark-700 hover:bg-dark-800/50 transition"
               >
-                <td className="p-4 font-medium text-light-200">#{ticket.id}</td>
-                <td className="p-4 text-light-300">{ticket.subject}</td>
-                <td className="p-4">
+                <td className="p-4 font-medium text-light-200 whitespace-nowrap">
+                  #{ticket.id}
+                </td>
+                <td className="p-4 text-light-300 break-words max-w-[200px] sm:max-w-none">
+                  {ticket.subject}
+                </td>
+                <td className="p-4 whitespace-nowrap">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[ticket.status]}`}
                   >

@@ -6,9 +6,25 @@ import RetailerHome from "./retailer/RetailerHome";
 import { ShoppingCart, BarChart3, Store, ClipboardList, User, Menu, X } from "lucide-react";
 
 const RetailerDashboard = ({ previewMode = false }) => {
-  const { user,allMarkets } = useAuth();
+  const { user,allMarkets,markets } = useAuth();
   const location = useLocation();
+  const [orders, setOrders] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+      const fetchOrders = async () => {
+        try {
+          const res = await fetch("http://localhost:3000/api/retailOrders/retailer", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (res.ok) setOrders(data);
+        } catch (err) {
+          console.error("Error fetching orders:", err);
+        }
+      };
+      fetchOrders();
+    }, [token]);
 
   const sidebarLinks = [
     { name: "Home", path: "home", icon: BarChart3 },
@@ -125,7 +141,7 @@ const RetailerDashboard = ({ previewMode = false }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <div className="bg-dark-800 border border-dark-700 p-4 sm:p-6 rounded-2xl shadow-sm">
               <p className="text-sm text-light-500">Total Orders</p>
-              <h2 className="text-xl sm:text-2xl font-bold text-light-100">342</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-light-100">{orders}</h2>
             </div>
             <div className="bg-dark-800 border border-dark-700 p-4 sm:p-6 rounded-2xl shadow-sm">
               <p className="text-sm text-light-500">Revenue</p>
@@ -133,7 +149,7 @@ const RetailerDashboard = ({ previewMode = false }) => {
             </div>
             <div className="bg-dark-800 border border-dark-700 p-4 sm:p-6 rounded-2xl shadow-sm">
               <p className="text-sm text-light-500">Markets Created</p>
-              <h2 className="text-xl sm:text-2xl font-bold text-light-100">{allMarkets.length}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-light-100">{markets.length}</h2>
             </div>
           </div>
 

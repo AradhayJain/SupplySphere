@@ -3,10 +3,10 @@ import React, { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import ManufacturerHome from "./manufacturer/ManufacturerHome";
-import { Package, BarChart3, ClipboardList, User, Menu, X } from "lucide-react";
+import { Package, BarChart3, ClipboardList, User, Menu, X, LogOut } from "lucide-react";
 
 const ManufacturerDashboard = ({ previewMode = false }) => {
-  const { user, token, products } = useAuth();
+  const { user, token, products , logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -56,6 +56,7 @@ const ManufacturerDashboard = ({ previewMode = false }) => {
     { name: "Sales History", path: "sales-history", icon: ClipboardList },
     {name: "Orders" , path: "Orders" , icon:ClipboardList},
     { name: "Profile", path: "profile", icon: User },
+
   ];
 
   return (
@@ -90,7 +91,8 @@ const ManufacturerDashboard = ({ previewMode = false }) => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-dark-400">
+        <div className="p-4 border-t border-dark-400 flex flex-col gap-5">
+        <button className="p-4 rounded-lg bg-gray-950 text-white" onClick={()=>logout()}>Logout</button>
           <small className="text-xs text-light-500 block truncate">
             SupplySphere • Manufacturer
           </small>
