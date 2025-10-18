@@ -1,12 +1,12 @@
 // src/dashboards/RetailerDashboard.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import RetailerHome from "./retailer/RetailerHome";
 import { ShoppingCart, BarChart3, Store, ClipboardList, User, Menu, X } from "lucide-react";
 
 const RetailerDashboard = ({ previewMode = false }) => {
-  const { user,allMarkets,markets } = useAuth();
+  const { user,allMarkets,markets,token } = useAuth();
   const location = useLocation();
   const [orders, setOrders] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -141,7 +141,7 @@ const RetailerDashboard = ({ previewMode = false }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <div className="bg-dark-800 border border-dark-700 p-4 sm:p-6 rounded-2xl shadow-sm">
               <p className="text-sm text-light-500">Total Orders</p>
-              <h2 className="text-xl sm:text-2xl font-bold text-light-100">{orders}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-light-100">{orders.length}</h2>
             </div>
             <div className="bg-dark-800 border border-dark-700 p-4 sm:p-6 rounded-2xl shadow-sm">
               <p className="text-sm text-light-500">Revenue</p>

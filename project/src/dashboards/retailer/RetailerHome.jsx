@@ -3,20 +3,34 @@ import { useAuth } from "../../contexts/AuthContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { Package, PlusCircle, ClipboardList, BarChart3, X } from "lucide-react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 // ===================================================================================
 // UI Components (Defined in the same file for consolidation)
 // ===================================================================================
 
-const ActionCard = ({ title, desc, icon, btn }) => (
+const ActionCard = ({ title, desc, icon, btn ,navigate }) => (
+
   <div className="bg-dark-800/70 backdrop-blur-lg border border-dark-700 p-6 rounded-2xl shadow-lg hover:shadow-primary/30 hover:border-primary transition-all duration-300 flex flex-col">
     <h3 className="font-semibold text-light-100 mb-3 flex items-center gap-3 text-lg">
       {icon} {title}
     </h3>
     <p className="text-sm text-light-400 mb-4 flex-grow">{desc}</p>
-    <button className="mt-auto bg-gradient-to-r from-primary to-primary-dark text-white px-4 py-2 rounded-lg font-medium hover:scale-105 transition-transform duration-200 w-full">
-      {btn}
-    </button>
+    <button
+  onClick={() =>
+    navigate(
+      btn === "View Orders"
+        ? "/dashboard/retailer/order-history"
+        : btn === "View Reports"
+        ? "/dashboard/retailer/sales-history"
+        : "/dashboard/retailer/create-market"
+    )
+  }
+  className="mt-auto bg-gradient-to-r from-primary to-primary-dark text-white px-4 py-2 rounded-lg font-medium hover:scale-105 transition-transform duration-200 w-full"
+>
+  {btn}
+</button>
+
   </div>
 );
 
@@ -185,6 +199,8 @@ const RetailerHome = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [boughtPro,setBoughtPro] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(()=>{
     const fetchBought = async () =>{
@@ -200,6 +216,20 @@ const RetailerHome = () => {
     }
     fetchBought();
   },[token])
+  useEffect(() => {
+        const fetchOrders = async () => {
+          try {
+            const res = await fetch("http://localhost:3000/api/retailOrders/retailer", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (res.ok) setOrders(data);
+          } catch (err) {
+            console.error("Error fetching orders:", err);
+          }
+        };
+        fetchOrders();
+      }, [token]);
 
   // Mock Data (moved inside for better encapsulation)
   const count = allMarkets.filter(m=>m.status==='Active').length
@@ -209,12 +239,13 @@ const RetailerHome = () => {
     { title: "Sales Reports", desc: "Get insights into your performance and revenue.", icon: <BarChart3 className="w-6 h-6 text-primary" />, btn: "View Reports" },
   ];
 
-  const monthOverviewStats = [
-    { label: "Orders", value: "98" },
-    { label: "Revenue", value: "₹ 2,40,000" },
-    { label: "New Customers", value: "42" },
-    { label: "Markets Active", value: `${count}` },
-  ];
+ const monthOverviewStats = [
+  { label: "Orders", value: orders.length },
+  { label: "Revenue", value: "₹ 2,40,000" },
+  { label: "New Customers", value: "42" },
+  { label: "Markets Active", value: count },
+];
+
 
   const handleBuyNow = (product) => {
     setSelectedProduct(product);
@@ -274,7 +305,7 @@ const RetailerHome = () => {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {quickActions.map((item, idx) => (
-            <ActionCard key={idx} {...item} />
+            <ActionCard key={idx} {...item} navigate={navigate} />
           ))}
         </div>
 
