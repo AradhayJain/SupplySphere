@@ -17,9 +17,9 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
  * @access Public
  */
 export const registerUser = asyncHandler(async (req, res) => {
-  const { username, name, email, password, PhoneNumber } = req.body;
+  const { fullName, email, password, PhoneNumber, Role, CompanyName } = req.body;
 
-  if (!name || !email || !password) {
+  if (!fullName || !email || !password) {
     res.status(400);
     throw new Error("Please fill all required fields");
   }
@@ -31,38 +31,28 @@ export const registerUser = asyncHandler(async (req, res) => {
     throw new Error("User already exists");
   }
 
-  // Upload pic to Cloudinary if it exists
-  let picUrl = null;
-  if (req.file && req.file.path) {
-      const picUpload = await uploadOnCloudinary(req.file.path);
-      if (!picUpload) {
-        res.status(400);
-        throw new Error("Profile picture upload failed");
-      }
-      picUrl = picUpload.url;
-  }
-
   // Create user
   const user = await User.create({
-    username,
-    name,
+    fullName,
     email,
     password,
     PhoneNumber,
-    pic: picUrl,
-    subscriptionType: "Free Tier", // default subscriptionType
-    lastLogin: new Date() // current date
+    Role: Role || "Consumer",
+    CompanyName:
+      ["Manufacturer", "Retailer", "Logistics"].includes(Role) && CompanyName
+        ? CompanyName
+        : null,
+    lastLogin: new Date(),
   });
 
   if (user) {
     res.status(201).json({
       _id: user._id,
-      username: user.username,
-      name: user.name,
+      fullName: user.fullName,
       email: user.email,
-      pic: user.pic,
-      subscriptionType: user.subscriptionType,
+      Role: user.Role,
       PhoneNumber: user.PhoneNumber,
+      CompanyName: user.CompanyName,
       lastLogin: user.lastLogin,
       token: generateToken(user._id),
     });
@@ -71,7 +61,6 @@ export const registerUser = asyncHandler(async (req, res) => {
     throw new Error("Failed to create user");
   }
 });
-
 
 /**
  * @desc Authenticate user & get token
@@ -83,18 +72,16 @@ export const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
 
   if (user && (await user.matchPassword(password))) {
-    // Update lastLogin timestamp
     user.lastLogin = new Date();
     await user.save();
 
     res.status(200).json({
       _id: user._id,
-      username: user.username,
-      name: user.name,
+      fullName: user.fullName,
       email: user.email,
       PhoneNumber: user.PhoneNumber,
-      pic: user.pic,
-      subscriptionType: user.subscriptionType,
+      Role: user.Role,
+      CompanyName: user.CompanyName,
       lastLogin: user.lastLogin,
       token: generateToken(user._id),
     });
@@ -110,53 +97,80 @@ export const loginUser = asyncHandler(async (req, res) => {
  * @access Public
  */
 export const googleAuth = asyncHandler(async (req, res) => {
-    const { token } = req.body;
-    const ticket = await client.verifyIdToken({
-        idToken: token,
-        audience: process.env.GOOGLE_CLIENT_ID,
+  const { token } = req.body;
+
+  const ticket = await client.verifyIdToken({
+    idToken: token,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const { name, email } = ticket.getPayload();
+
+  let user = await User.findOne({ email });
+  let isNewUser = false;
+
+  if (user) {
+    user.lastLogin = new Date();
+    await user.save();
+  } else {
+    const password = crypto.randomBytes(16).toString("hex"); // random pw
+    user = await User.create({
+      fullName: name,
+      email,
+      password,
+      lastLogin: new Date(),
     });
-    const { name, email, picture } = ticket.getPayload();
+    isNewUser = true;
+  }
 
-    
-   
-    let user = await User.findOne({ email });
+  if (user) {
+    res.status(isNewUser ? 201 : 200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      PhoneNumber: user.PhoneNumber,
+      Role: user.Role || null,
+      CompanyName: user.CompanyName || null,
+      lastLogin: user.lastLogin,
+      token: generateToken(user._id),
+      newUser: isNewUser,
+    });
+  } else {
+    res.status(400);
+    throw new Error("Invalid user data from Google");
+  }
+});
 
-    if (user) {
-        // User exists, log them in
-        user.lastLogin = new Date();
-        await user.save();
-    } else {
-        // User doesn't exist, create a new account
-        const username = email.split('@')[0] + Math.floor(Math.random() * 1000); // Generate a random username
-        const password = crypto.randomBytes(16).toString('hex'); // Generate a secure random password
-        
-        user = await User.create({
-            name,
-            email,
-            username,
-            password, // This will be hashed by the model pre-save hook
-            pic: picture,
-            subscriptionType: "Free Tier",
-            lastLogin: new Date(),
-        });
-    }
+/**
+ * @desc Assign Role (after Google login or update)
+ * @route POST /api/user/assign-role
+ * @access Public
+ */
+export const assignRole = asyncHandler(async (req, res) => {
+  const { userId, Role, CompanyName } = req.body;
 
-    if (user) {
-        res.status(user.isNew ? 201 : 200).json({
-            _id: user._id,
-            username: user.username,
-            name: user.name,
-            email: user.email,
-            PhoneNumber: user.PhoneNumber,
-            pic: user.pic,
-            subscriptionType: user.subscriptionType,
-            lastLogin: user.lastLogin,
-            token: generateToken(user._id),
-        });
-    } else {
-        res.status(400);
-        throw new Error("Invalid user data from Google");
-    }
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  user.Role = Role;
+  if (["Manufacturer", "Retailer", "Logistics"].includes(Role)) {
+    user.CompanyName = CompanyName || null;
+  }
+  await user.save();
+
+  res.json({
+    _id: user._id,
+    fullName: user.fullName,
+    email: user.email,
+    PhoneNumber: user.PhoneNumber,
+    Role: user.Role,
+    CompanyName: user.CompanyName,
+    lastLogin: user.lastLogin,
+    token: generateToken(user._id),
+  });
 });
 
 
@@ -363,31 +377,24 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
-    user.username = req.body.username || user.username;
-    user.name = req.body.name || user.name;
+    user.CompanyName = req.body.companyName || user.CompanyName;
+    user.fullName = req.body.fullName || user.fullName;
     user.email = req.body.email || user.email;
-    user.PhoneNumber = req.body.PhoneNumber || user.PhoneNumber;
-    user.Address = req.body.Address || user.Address;
+    user.PhoneNumber = req.body.phone || user.PhoneNumber;
+    user.Address = req.body.address || user.Address;
 
-    // Handle profile picture update
-    if (req.file && req.file.path) {
-      const picUpload = await uploadOnCloudinary(req.file.path);
-      if (picUpload && picUpload.url) {
-        user.pic = picUpload.url;
-      }
-    }
-
+  
     const updatedUser = await user.save();
 
     res.json({
       _id: updatedUser._id,
-      username: updatedUser.username,
-      name: updatedUser.name,
+      fullName: updatedUser.fullName,
       email: updatedUser.email,
       PhoneNumber: updatedUser.PhoneNumber,
       Address: updatedUser.Address,
-      pic: updatedUser.pic,
-      subscriptionType: updatedUser.subscriptionType,
+      Role: updatedUser.Role,
+      CompanyName: updatedUser.CompanyName,
+      lastLogin: updatedUser.lastLogin,
       token: generateToken(updatedUser._id),
     });
   } else {

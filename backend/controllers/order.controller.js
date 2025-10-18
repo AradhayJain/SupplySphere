@@ -1,120 +1,121 @@
 import asyncHandler from "express-async-handler";
-import {Order} from "../models/order.model.js";
-import { User } from "../models/user.model.js";
+import { Order } from "../models/order.model.js";
+import {User} from "../models/user.model.js"; 
+import { Product } from "../models/product.model.js"; // Product model might be needed for inventory updates etc.
 
-/**
- * @desc Create new order
- * @route POST /api/orders
- * @access Private (Customer/Retailer)
- */
+// @desc    Create new order
+// @route   POST /api/orders
+// @access  Private
 export const createOrder = asyncHandler(async (req, res) => {
-  const { sellerId, products, totalAmount, discountApplied, paymentMethod, deliveryMethod } = req.body;
+  const { address,products, totalAmount, discountApplied, paymentMethod, deliveryMethod } = req.body;
 
   if (!products || products.length === 0) {
     res.status(400);
-    throw new Error("No products provided in the order");
+    throw new Error("No products in order");
   }
+  
+
+  // Assuming all products in one order come from the same seller for simplicity
+  // A more complex system might group items by seller in the cart itself
+  const productRecord = await Product.findById(products[0].productId);
+  if (!productRecord) {
+      res.status(404);
+      throw new Error(`Product with ID ${products[0].productId} not found`);
+  }
+  const sellerId = productRecord.sellerId; // Assuming sellerId is a field in your Product model
 
   const order = new Order({
     buyerId: req.user._id,
-    sellerId,
+    sellerId: sellerId,
     products,
     totalAmount,
     discountApplied,
     paymentMethod,
-    deliveryMethod,
-    orderNumber: "ORD-" + Date.now() // simple unique order number
+    deliveryMethod
   });
 
   const createdOrder = await order.save();
+  
+  // Optional: Clear user's cart after order creation
+  const user = await User.findById(req.user._id);
+  user.Address = address || user.Address; // Update address if provided
+  await user.save();
   res.status(201).json(createdOrder);
 });
 
-/**
- * @desc Get logged-in user's orders
- * @route GET /api/orders/my
- * @access Private
- */
+// @desc    Get logged-in user orders
+// @route   GET /api/orders/myorders
+// @access  Private
 export const getMyOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ buyerId: req.user._id })
-    .populate("products.productId", "name price")
-    .populate("sellerId", "name email");
+  const orders = await Order.find({ sellerId: req.user._id })
+  .populate("buyerId","name email")
+  .populate("products.productId", "name price");
+
+  console.log(orders)
+  console.log(orders)
   res.json(orders);
 });
 
-/**
- * @desc Get single order by ID
- * @route GET /api/orders/:id
- * @access Private
- */
+// @desc    Get single order by ID
+// @route   GET /api/orders/:id
+// @access  Private
 export const getOrderById = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.params.id)
-    .populate("products.productId", "name price")
     .populate("buyerId", "name email")
-    .populate("sellerId", "name email");
+    .populate("products.productId", "name price");
 
-  if (order) {
+  if (order && (order.buyerId._id.toString() === req.user._id.toString() /* || req.user.isAdmin */)) {
     res.json(order);
   } else {
     res.status(404);
-    throw new Error("Order not found");
+    throw new Error("Order not found or not authorized");
   }
 });
 
-/**
- * @desc Cancel order
- * @route PUT /api/orders/:id/cancel
- * @access Private (Buyer only)
- */
-export const cancelOrder = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id);
-
-  if (!order) {
-    res.status(404);
-    throw new Error("Order not found");
-  }
-
-  if (order.buyerId.toString() !== req.user._id.toString()) {
-    res.status(401);
-    throw new Error("Not authorized to cancel this order");
-  }
-
-  if (order.status === "shipped" || order.status === "delivered") {
-    res.status(400);
-    throw new Error("Order cannot be cancelled at this stage");
-  }
-
-  order.status = "cancelled";
-  await order.save();
-
-  res.json({ message: "Order cancelled successfully" });
-});
-
-/**
- * @desc Update order status (seller/admin)
- * @route PUT /api/orders/:id/status
- * @access Private (Seller/Admin)
- */
+// @desc    Update order status (for seller/admin)
+// @route   PUT /api/orders/:id/status
+// @access  Private (seller/admin)
 export const updateOrderStatus = asyncHandler(async (req, res) => {
-  const { status, paymentStatus } = req.body;
+  const { status } = req.body;
   const order = await Order.findById(req.params.id);
 
   if (!order) {
     res.status(404);
     throw new Error("Order not found");
   }
+  
+  // Authorization check: ensure the user is the seller or an admin
+  // if(order.sellerId.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+  //    res.status(401);
+  //    throw new Error("Not authorized to update this order");
+  // }
 
-  // Seller check
-  if (order.sellerId.toString() !== req.user._id.toString() && req.user.Role !== "Admin") {
-    res.status(401);
-    throw new Error("Not authorized to update this order");
+  order.status = status || order.status;
+  const updatedOrder = await order.save();
+  res.json(updatedOrder);
+});
+
+// @desc    Update payment status
+// @route   PUT /api/orders/:id/pay
+// @access  Private
+export const updatePaymentStatus = asyncHandler(async (req, res) => {
+  const { paymentStatus } = req.body;
+  const order = await Order.findById(req.params.id);
+
+  if (!order) {
+    res.status(404);
+    throw new Error("Order not found");
   }
+  
+  // Authorization check: ensure the user is the buyer or an admin
+  // if(order.buyerId.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+  //    res.status(401);
+  //    throw new Error("Not authorized to update payment");
+  // }
 
-  if (status) order.status = status;
-  if (paymentStatus) order.paymentStatus = paymentStatus;
-
-  await order.save();
-  res.json(order);
+  order.paymentStatus = paymentStatus || order.paymentStatus;
+  const updatedOrder = await order.save();
+  res.json(updatedOrder);
 });
 
 /**
@@ -123,8 +124,24 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
  * @access Private/Admin
  */
 export const getAllOrders = asyncHandler(async (req, res) => {
+    // if(!req.user.isAdmin) {
+    //     res.status(401);
+    //     throw new Error("Not authorized as an admin");
+    // }
   const orders = await Order.find()
     .populate("buyerId", "name email")
     .populate("sellerId", "name email");
   res.json(orders);
 });
+
+// @desc    Get orders received by logged-in seller
+// @route   GET /api/orders/seller
+// @access  Private (seller/retailer/manufacturer)
+export const getSellerOrders = asyncHandler(async (req, res) => {
+  const orders = await Order.find({ sellerId: req.user._id })
+    .populate("buyerId", "name email")
+    .populate("products.productId", "name category price");
+
+  res.json(orders);
+});
+

@@ -1,41 +1,24 @@
 import React from 'react';
 
-const Input = ({ 
-  label, 
-  type = 'text', 
-  placeholder, 
-  value, 
-  onChange, 
-  error, 
-  className = '', 
-  required = false,
-  ...props 
-}) => {
+const Input = ({ id, name, type = 'text', placeholder, value, onChange, required = false }) => {
   return (
-    <div className="w-full">
-      {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
-      )}
+    <div>
+      <label htmlFor={id} className="sr-only">
+        {placeholder}
+      </label>
       <input
+        id={id}
+        name={name}
         type={type}
-        placeholder={placeholder}
+        required={required}
         value={value}
         onChange={onChange}
-        className={`
-          w-full px-3 py-2 border border-gray-300 rounded-lg 
-          focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-          ${error ? 'border-red-500' : ''}
-          ${className}
-        `}
-        {...props}
+        className="block w-full rounded-md border-0 bg-dark-200 py-2.5 px-3 text-light-100 shadow-sm ring-1 ring-inset ring-dark-400 placeholder:text-light-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+        placeholder={placeholder}
       />
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
     </div>
   );
 };
 
 export default Input;
+
